@@ -34,6 +34,8 @@ O transformador `DaimerFeatureTransformer` gera:
 
 Isso permite que modelos nao lineares aprendam tanto regioes suaves quanto quebras estruturais nos limites tecnicos.
 
+A varredura final dos PDFs em `papers/` reforcou essa escolha de arquitetura: os trabalhos revisados tratam diagnostico de isolamento como composicao de fenomenos de descarga parcial, resistencia/polarizacao, perdas/relaxacao dieletrica, carga espacial, contaminacao/umidade e historico operacional. O resumo esta em `relatorio_papers.md`.
+
 ## Normalizacao das unidades
 
 Os inputs do ensaio nao estao na mesma escala fisica. Ha variaveis em porcentagem, indices, grandezas eletricas e valores como `PD`, que podem estar em milhares. Se esses valores entrassem crus no modelo, a escala numerica poderia dominar a aprendizagem sem representar importancia fisica real.

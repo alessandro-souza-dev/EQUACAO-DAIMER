@@ -19,6 +19,10 @@
 
 - `GEI` nao fecha como funcao unica das 8 variaveis. O PDF diz que o grau de envelhecimento depende tambem de tempo de operacao, idade/historico e conservacao da isolacao. A planilha confirma isso: o melhor estimador somente pelas 8 variaveis ainda deixa erro medio de cerca de 2 anos.
 
+### Apoio bibliografico final
+
+A varredura dos PDFs em `papers/` nao encontrou coeficientes DAIMER ou uma equacao proprietaria equivalente. Ela reforcou, porem, que a estrutura adotada e tecnicamente plausivel: diagnostico por multiplas familias de fenomenos, incluindo descarga parcial, resistencia/polarizacao, perdas/relaxacao dieletrica, carga espacial, contaminacao/umidade e historico operacional. O resumo da varredura esta em `relatorio_papers.md`.
+
 ## 2. Equacoes propostas
 
 Defina as margens logaritmicas, sempre com log10:
