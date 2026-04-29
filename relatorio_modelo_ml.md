@@ -10,6 +10,7 @@ Arquivos criados:
 
 - `daimer_ml.py`: engenharia de atributos, carregamento do bundle e funcao `calcular_ml(...)`.
 - `treinar_modelo_ml_daimer.py`: treino, validacao cruzada, selecao de modelos e salvamento dos artefatos.
+- `relatorio_pesos_modelo_ml.md`: pesos aprendidos por input para D10, D20 e GEI.
 
 Artefatos treinados salvos fora do OneDrive:
 
@@ -32,6 +33,25 @@ O transformador `DaimerFeatureTransformer` gera:
 - interacoes par-a-par entre margens.
 
 Isso permite que modelos nao lineares aprendam tanto regioes suaves quanto quebras estruturais nos limites tecnicos.
+
+## Pesos aprendidos por input
+
+O treino calcula importancia por permutacao nos 8 inputs originais. Cada input e embaralhado isoladamente e o impacto no MAE do modelo `production` vira um peso percentual por saida.
+
+Resumo global medio:
+
+| Input | Peso medio |
+| --- | ---: |
+| `PD` | 22,97% |
+| `Tang δ (h)` | 13,94% |
+| `ΔTan δ` | 12,88% |
+| `ΔI` | 12,25% |
+| `H` | 11,13% |
+| `Pi1/Vn` | 10,41% |
+| `Tan δ` | 8,52% |
+| `IP` | 7,90% |
+
+O detalhe por saida esta em `relatorio_pesos_modelo_ml.md`.
 
 ## Modelos testados
 
@@ -78,7 +98,7 @@ O bundle tem tres modos:
 ## Casos reais externos
 
 | Caso | Modo | D10 | D20 | Global | GEI |
-|---|---|---:|---:|---:|---:|
+| --- | --- | ---: | ---: | ---: | ---: |
 | PDF alvo | alvo | 1,46 | 2,04 | 3,50 | 10 |
 | PDF | anchored | 1,46 | 2,04 | 3,50 | 10 |
 | PDF | production | 1,52 | 2,03 | 3,56 | 8 |

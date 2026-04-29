@@ -28,6 +28,7 @@
 
     .tool-panel,
     .chart-panel,
+    .weights-panel,
     .result-panel {
       background: var(--surface);
       border: 1px solid var(--line);
@@ -82,6 +83,8 @@
     .status-pill {
       display: inline-flex;
       align-items: center;
+      width: fit-content;
+      max-width: 100%;
       min-height: 2rem;
       border-radius: 999px;
       padding: .25rem .75rem;
@@ -93,8 +96,15 @@
 
     .chart-box {
       position: relative;
-      height: min(62vh, 560px);
-      min-height: 390px;
+      height: 360px;
+      min-height: 320px;
+    }
+
+    .chart-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1rem;
+      background: #fff;
     }
 
     .chart-image {
@@ -109,9 +119,74 @@
       font-size: .86rem;
     }
 
+    .mode-title {
+      color: #0f172a;
+      font-size: .95rem;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .mini-output {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: .85rem;
+      background: #fff;
+    }
+
+    .mini-output .result-value {
+      font-size: clamp(1.05rem, 1.7vw, 1.55rem);
+    }
+
+    .weight-row {
+      display: grid;
+      grid-template-columns: minmax(78px, 1fr) 3.25rem;
+      gap: .6rem;
+      align-items: center;
+      margin-bottom: .65rem;
+    }
+
+    .weight-label {
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+      min-width: 0;
+    }
+
+    .weight-name {
+      color: #344054;
+      font-size: .82rem;
+      font-weight: 700;
+      line-height: 1.05;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .weight-track {
+      width: 100%;
+      height: .48rem;
+      border-radius: 999px;
+      background: #e7edf5;
+      overflow: hidden;
+    }
+
+    .weight-bar {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .weight-value {
+      color: #475467;
+      font-size: .78rem;
+      font-weight: 800;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
     @media (max-width: 991.98px) {
       .chart-box {
-        height: 430px;
+        height: 360px;
       }
     }
   </style>
@@ -196,50 +271,132 @@
 
         <section class="result-panel p-3 p-lg-4 mt-3">
           <h2 class="section-title mb-3">Saídas</h2>
-          <div class="row g-2">
-            <div class="col-6">
-              <div class="border rounded-2 p-3 h-100">
-                <div class="result-label">D10</div>
-                <div class="result-value" id="outD10">--</div>
+
+          <div class="mb-3">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+              <h3 class="mode-title">Produção</h3>
+              <span class="status-pill" id="productionBadge">Equação local</span>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">D10</div>
+                  <div class="result-value" id="productionD10">--</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">D20</div>
+                  <div class="result-value" id="productionD20">--</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">Global</div>
+                  <div class="result-value" id="productionGlobal">--</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">GEI</div>
+                  <div class="result-value" id="productionGei">--</div>
+                </div>
               </div>
             </div>
-            <div class="col-6">
-              <div class="border rounded-2 p-3 h-100">
-                <div class="result-label">D20</div>
-                <div class="result-value" id="outD20">--</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="border rounded-2 p-3 h-100">
-                <div class="result-label">Global</div>
-                <div class="result-value" id="outGlobal">--</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="border rounded-2 p-3 h-100">
-                <div class="result-label">GEI</div>
-                <div class="result-value" id="outGei">--</div>
-              </div>
+            <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+              <span class="status-pill" id="productionZone">--</span>
+              <span class="muted-note" id="productionLine"></span>
             </div>
           </div>
-          <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
-            <span class="status-pill" id="zoneOutput">--</span>
-            <span class="muted-note" id="lineOutput"></span>
+
+          <div>
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+              <h3 class="mode-title">Oráculo</h3>
+              <span class="status-pill" id="oracleBadge">Aguardando</span>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">D10</div>
+                  <div class="result-value" id="oracleD10">--</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">D20</div>
+                  <div class="result-value" id="oracleD20">--</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">Global</div>
+                  <div class="result-value" id="oracleGlobal">--</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="mini-output h-100">
+                  <div class="result-label">GEI</div>
+                  <div class="result-value" id="oracleGei">--</div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+              <span class="status-pill" id="oracleZone">--</span>
+              <span class="muted-note" id="oracleLine"></span>
+            </div>
           </div>
         </section>
       </div>
 
       <div class="col-12 col-xl-8">
         <section class="chart-panel p-3 p-lg-4">
-          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
-            <h2 class="section-title">Gráfico D20 x D10</h2>
-            <a class="btn btn-outline-primary btn-sm disabled" id="downloadImage" href="#" download="grafico-daimer.png" aria-disabled="true">Baixar PNG</a>
-          </div>
-          <div class="chart-box">
-            <canvas id="diagnosticChart" aria-label="Grafico diagnostico DAIMER" role="img"></canvas>
-          </div>
-          <div class="mt-3">
-            <img class="chart-image d-none" id="chartImage" alt="Grafico DAIMER gerado em PNG">
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-lg-8">
+              <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                <div>
+                  <h2 class="section-title">Gráficos X=D10, Y=D20</h2>
+                  <div class="muted-note">X: degradação | Y: contaminação</div>
+                </div>
+              </div>
+
+              <div class="chart-card mb-3">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                  <h3 class="mode-title">Produção</h3>
+                  <a class="btn btn-outline-primary btn-sm disabled" id="downloadProductionImage" href="#" download="grafico-daimer-producao.png" aria-disabled="true">Baixar PNG</a>
+                </div>
+                <div class="chart-box">
+                  <canvas id="productionChart" aria-label="Grafico de producao DAIMER" role="img"></canvas>
+                </div>
+                <img class="chart-image d-none" id="productionChartImage" alt="Grafico DAIMER producao gerado em PNG" aria-hidden="true">
+              </div>
+
+              <div class="chart-card">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                  <h3 class="mode-title">Oráculo</h3>
+                  <a class="btn btn-outline-primary btn-sm disabled" id="downloadOracleImage" href="#" download="grafico-daimer-oraculo.png" aria-disabled="true">Baixar PNG</a>
+                </div>
+                <div class="chart-box">
+                  <canvas id="oracleChart" aria-label="Grafico de oraculo DAIMER" role="img"></canvas>
+                </div>
+                <img class="chart-image d-none" id="oracleChartImage" alt="Grafico DAIMER oraculo gerado em PNG" aria-hidden="true">
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-4">
+              <aside class="weights-panel p-3 h-100">
+                <h2 class="section-title mb-1">Pesos aprendidos</h2>
+                <div class="muted-note mb-3">Importância por permutação</div>
+
+                <h3 class="mode-title mb-2">Eixo X | Degradação D10</h3>
+                <div id="weightsD10" class="mb-4"></div>
+
+                <h3 class="mode-title mb-2">Eixo Y | Contaminação D20</h3>
+                <div id="weightsD20" class="mb-4"></div>
+
+                <h3 class="mode-title mb-2">Peso médio global</h3>
+                <div id="weightsGlobal"></div>
+              </aside>
+            </div>
           </div>
         </section>
       </div>
@@ -308,7 +465,43 @@
       }
     };
 
-    let diagnosticChart;
+    const learnedWeights = {
+      d10: [
+        ["PD", 27.00],
+        ["ΔTan δ", 16.21],
+        ["ΔI", 16.12],
+        ["Tang δ (h)", 15.96],
+        ["Pi1/Vn", 13.52],
+        ["Tan δ", 7.66],
+        ["IP", 2.66],
+        ["H", 0.88]
+      ],
+      d20: [
+        ["H", 27.59],
+        ["PD", 16.91],
+        ["Tang δ (h)", 15.24],
+        ["IP", 14.23],
+        ["ΔTan δ", 9.97],
+        ["Pi1/Vn", 9.17],
+        ["Tan δ", 3.70],
+        ["ΔI", 3.18]
+      ],
+      global: [
+        ["PD", 22.97],
+        ["Tang δ (h)", 13.94],
+        ["ΔTan δ", 12.88],
+        ["ΔI", 12.25],
+        ["H", 11.13],
+        ["Pi1/Vn", 10.41],
+        ["Tan δ", 8.52],
+        ["IP", 7.90]
+      ]
+    };
+
+    const charts = {
+      production: null,
+      oracle: null
+    };
 
     const byId = (id) => document.getElementById(id);
     const round2 = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -426,14 +619,7 @@
       }));
     }
 
-    function calculateDaimer(input) {
-      const anchor = findAnchor(input);
-      if (anchor) {
-        return {
-          ...anchor.targets,
-          source: anchor.name
-        };
-      }
+    function calculateProduction(input) {
       const d10Raw = calculateD10(input, true);
       const d20Raw = calculateD20(input, true);
       return {
@@ -442,6 +628,28 @@
         global: round2(d10Raw + d20Raw),
         gei: calculateGei(input),
         source: "Equação local"
+      };
+    }
+
+    function calculateOracle(input, production) {
+      const anchor = findAnchor(input);
+      if (anchor) {
+        return {
+          ...anchor.targets,
+          source: anchor.name
+        };
+      }
+      return {
+        ...production,
+        source: "Oráculo estimado"
+      };
+    }
+
+    function calculateDaimer(input) {
+      const production = calculateProduction(input);
+      return {
+        production,
+        oracle: calculateOracle(input, production)
       };
     }
 
@@ -464,21 +672,21 @@
       return -x - 1;
     }
 
-    function classifyZone(d20, d10) {
-      if (d20 >= 0 && d10 >= 0) {
+    function classifyZone(d10, d20) {
+      if (d10 >= 0 && d20 >= 0) {
         return "Bom";
       }
-      if (d20 < 0 && d10 >= 0) {
-        return "Rejuvenescimento";
+      if (d10 < 0 && d20 >= 0) {
+        return "Limpeza e Secagem";
       }
-      if (d20 < 0 && d10 < 0) {
+      if (d10 < 0 && d20 < 0) {
         return "Crítico";
       }
-      return "Limpeza e Secagem";
+      return "Rejuvenescimento";
     }
 
-    function linePosition(d20, d10) {
-      return d10 < redLineY(d20) ? "Abaixo da linha" : "Acima da linha";
+    function linePosition(d10, d20) {
+      return d20 < redLineY(d10) ? "Abaixo da linha" : "Acima da linha";
     }
 
     function axisBounds(point) {
@@ -520,10 +728,10 @@
         const { left, right, top, bottom } = chartArea;
         ctx.save();
         ctx.font = "600 16px system-ui, -apple-system, Segoe UI, sans-serif";
-        drawLabel(ctx, "Rejuvenescimento", left + 24, top + 34, "rgba(255, 242, 0, .58)", "#7a7800");
+        drawLabel(ctx, "Limpeza e Secagem", left + 24, top + 34, "rgba(255, 242, 0, .58)", "#7a7800");
         drawLabel(ctx, "Bom", right - 72, top + 34, "rgba(112, 255, 96, .52)", "#0f8a17");
         drawLabel(ctx, "Crítico", left + 24, bottom - 42, "rgba(255, 86, 86, .50)", "#9f1f1f");
-        drawLabel(ctx, "Limpeza e Secagem", right - 210, bottom - 42, "rgba(255, 242, 0, .58)", "#7a7800");
+        drawLabel(ctx, "Rejuvenescimento", right - 190, bottom - 42, "rgba(255, 242, 0, .58)", "#7a7800");
         ctx.restore();
       }
     };
@@ -538,8 +746,8 @@
       ctx.fillText(text, x, y);
     }
 
-    function createOrUpdateChart(result) {
-      const point = { x: result.d20, y: result.d10 };
+    function createOrUpdateChart(mode, result) {
+      const point = { x: result.d10, y: result.d20 };
       const bounds = axisBounds(point);
       const redLine = [
         { x: bounds.xMin, y: redLineY(bounds.xMin) },
@@ -550,7 +758,7 @@
         datasets: [
           {
             type: "line",
-            label: "Abaixo dessa linha, recomenda-se o rebobinamento da máquina",
+            label: "Linha fixa: D20 = -D10 - 1",
             data: redLine,
             borderColor: "#ff1f1f",
             borderWidth: 2,
@@ -560,7 +768,7 @@
           },
           {
             type: "scatter",
-            label: "Resultado",
+            label: mode === "oracle" ? "Resultado Oráculo" : "Resultado Produção",
             data: [point],
             backgroundColor: "#111111",
             borderColor: "#111111",
@@ -590,9 +798,9 @@
               label(context) {
                 const raw = context.raw;
                 if (context.dataset.type === "line") {
-                  return "Linha fixa: D10 = -D20 - 1";
+                  return "Linha fixa: D20 = -D10 - 1";
                 }
-                return `D20 ${raw.x.toFixed(2)} | D10 ${raw.y.toFixed(2)}`;
+                return `D10 ${raw.x.toFixed(2)} | D20 ${raw.y.toFixed(2)}`;
               }
             }
           }
@@ -604,7 +812,7 @@
             max: bounds.xMax,
             title: {
               display: true,
-              text: "D20",
+              text: "Degradação D10",
               color: "#6b7280",
               font: { size: 16, weight: "600" }
             },
@@ -627,7 +835,7 @@
             max: bounds.yMax,
             title: {
               display: true,
-              text: "D10",
+              text: "Contaminação D20",
               color: "#6b7280",
               font: { size: 16, weight: "600" }
             },
@@ -647,43 +855,54 @@
         }
       };
 
-      if (!diagnosticChart) {
-        diagnosticChart = new Chart(byId("diagnosticChart"), {
+      const canvasId = mode === "oracle" ? "oracleChart" : "productionChart";
+      if (!charts[mode]) {
+        charts[mode] = new Chart(byId(canvasId), {
           type: "scatter",
           data,
           options,
           plugins: [whiteBackgroundPlugin, zoneLabelsPlugin]
         });
       } else {
-        diagnosticChart.data = data;
-        diagnosticChart.options = options;
-        diagnosticChart.update();
+        charts[mode].data = data;
+        charts[mode].options = options;
+        charts[mode].update();
       }
 
-      updateChartImage();
+      updateChartImage(mode);
     }
 
-    function updateChartImage() {
+    function updateChartImage(mode) {
       requestAnimationFrame(() => {
-        const imageUrl = diagnosticChart.toBase64Image("image/png", 1);
-        const image = byId("chartImage");
-        const download = byId("downloadImage");
+        const chart = charts[mode];
+        if (!chart) {
+          return;
+        }
+        const imageUrl = chart.toBase64Image("image/png", 1);
+        const image = byId(mode === "oracle" ? "oracleChartImage" : "productionChartImage");
+        const download = byId(mode === "oracle" ? "downloadOracleImage" : "downloadProductionImage");
         image.src = imageUrl;
-        image.classList.remove("d-none");
+        image.classList.add("d-none");
         download.href = imageUrl;
         download.classList.remove("disabled");
         download.removeAttribute("aria-disabled");
       });
     }
 
-    function updateOutputs(result) {
-      byId("outD10").textContent = result.d10.toFixed(2);
-      byId("outD20").textContent = result.d20.toFixed(2);
-      byId("outGlobal").textContent = result.global.toFixed(2);
-      byId("outGei").textContent = String(result.gei);
-      byId("modeBadge").textContent = result.source;
-      byId("zoneOutput").textContent = classifyZone(result.d20, result.d10);
-      byId("lineOutput").textContent = linePosition(result.d20, result.d10);
+    function updateOutputGroup(prefix, result) {
+      byId(`${prefix}D10`).textContent = result.d10.toFixed(2);
+      byId(`${prefix}D20`).textContent = result.d20.toFixed(2);
+      byId(`${prefix}Global`).textContent = result.global.toFixed(2);
+      byId(`${prefix}Gei`).textContent = String(result.gei);
+      byId(`${prefix}Badge`).textContent = result.source;
+      byId(`${prefix}Zone`).textContent = classifyZone(result.d10, result.d20);
+      byId(`${prefix}Line`).textContent = linePosition(result.d10, result.d20);
+    }
+
+    function updateOutputs(results) {
+      updateOutputGroup("production", results.production);
+      updateOutputGroup("oracle", results.oracle);
+      byId("modeBadge").textContent = `${results.production.source} + ${results.oracle.source}`;
     }
 
     function showError(message) {
@@ -703,9 +922,10 @@
       try {
         const input = readInput();
         validateInput(input);
-        const result = calculateDaimer(input);
-        updateOutputs(result);
-        createOrUpdateChart(result);
+        const results = calculateDaimer(input);
+        updateOutputs(results);
+        createOrUpdateChart("production", results.production);
+        createOrUpdateChart("oracle", results.oracle);
       } catch (error) {
         showError(error.message || "Nao foi possivel calcular.");
       }
@@ -721,14 +941,47 @@
     function resetForm() {
       byId("daimerForm").reset();
       byId("ajuste_historico_anos").value = 0;
-      ["outD10", "outD20", "outGlobal", "outGei"].forEach((id) => byId(id).textContent = "--");
+      [
+        "productionD10", "productionD20", "productionGlobal", "productionGei",
+        "oracleD10", "oracleD20", "oracleGlobal", "oracleGei"
+      ].forEach((id) => byId(id).textContent = "--");
       byId("modeBadge").textContent = "Aguardando cálculo";
-      byId("zoneOutput").textContent = "--";
-      byId("lineOutput").textContent = "";
-      byId("chartImage").classList.add("d-none");
-      byId("downloadImage").classList.add("disabled");
-      byId("downloadImage").setAttribute("aria-disabled", "true");
+      byId("productionBadge").textContent = "Equação local";
+      byId("oracleBadge").textContent = "Aguardando";
+      ["productionZone", "oracleZone"].forEach((id) => byId(id).textContent = "--");
+      ["productionLine", "oracleLine"].forEach((id) => byId(id).textContent = "");
+      ["productionChartImage", "oracleChartImage"].forEach((id) => byId(id).classList.add("d-none"));
+      ["downloadProductionImage", "downloadOracleImage"].forEach((id) => {
+        byId(id).classList.add("disabled");
+        byId(id).setAttribute("aria-disabled", "true");
+      });
       clearError();
+    }
+
+    function formatWeight(value) {
+      return `${value.toFixed(2).replace(".", ",")}%`;
+    }
+
+    function renderWeights(containerId, weights) {
+      const maximum = Math.max(...weights.map((item) => item[1]));
+      byId(containerId).innerHTML = weights.map(([name, value]) => {
+        const width = maximum > 0 ? (value / maximum) * 100 : 0;
+        return `
+          <div class="weight-row">
+            <div class="weight-label">
+              <div class="weight-name" title="${name}">${name}</div>
+              <div class="weight-track"><div class="weight-bar" style="width: ${width}%;"></div></div>
+            </div>
+            <div class="weight-value">${formatWeight(value)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderAllWeights() {
+      renderWeights("weightsD10", learnedWeights.d10);
+      renderWeights("weightsD20", learnedWeights.d20);
+      renderWeights("weightsGlobal", learnedWeights.global);
     }
 
     byId("daimerForm").addEventListener("submit", (event) => {
@@ -740,6 +993,7 @@
     byId("loadCase2").addEventListener("click", () => loadExample(examples.case2));
     byId("clearForm").addEventListener("click", resetForm);
 
+    renderAllWeights();
     loadExample(examples.pdf);
   </script>
 </body>

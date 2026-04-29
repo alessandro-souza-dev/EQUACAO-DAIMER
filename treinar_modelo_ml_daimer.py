@@ -46,6 +46,7 @@ DATA_FILE = BASE_DIR / "Dados_Ensaios.xlsx"
 OUTPUT_DIR = Path.home() / "daimer_modelos_ml"
 BUNDLE_FILE = OUTPUT_DIR / "daimer_ml_bundle.joblib"
 METRICS_FILE = OUTPUT_DIR / "metricas_ml.json"
+WEIGHTS_REPORT_FILE = BASE_DIR / "relatorio_pesos_modelo_ml.md"
 
 
 ANCHOR_CASES = [
@@ -132,6 +133,122 @@ def regression_metrics(target_values: np.ndarray, predicted_values: np.ndarray) 
     }
 
 
+def permutation_input_weights(
+    model: Pipeline,
+    feature_frame: Any,
+    target_values: np.ndarray,
+    random_state: int = 42,
+    repeats: int = 30,
+) -> list[dict[str, float | str]]:
+    base_frame = feature_frame.reset_index(drop=True).copy()
+    target_array = np.asarray(target_values, dtype=float)
+    baseline_predictions = model.predict(base_frame)
+    baseline_mae = mean_absolute_error(target_array, baseline_predictions)
+    rng = np.random.default_rng(random_state)
+
+    rows = []
+    for column in FEATURE_COLUMNS:
+        mae_increases = []
+        for _ in range(repeats):
+            shuffled_frame = base_frame.copy()
+            shuffled_frame[column] = rng.permutation(shuffled_frame[column].to_numpy())
+            shuffled_predictions = model.predict(shuffled_frame)
+            shuffled_mae = mean_absolute_error(target_array, shuffled_predictions)
+            mae_increases.append(max(0.0, float(shuffled_mae - baseline_mae)))
+        input_values = base_frame[column].to_numpy(dtype=float)
+        if np.std(input_values) > 0 and np.std(baseline_predictions) > 0:
+            correlation = float(np.corrcoef(input_values, baseline_predictions)[0, 1])
+        else:
+            correlation = 0.0
+        rows.append(
+            {
+                "input": column,
+                "mae_increase": float(np.mean(mae_increases)),
+                "mae_increase_std": float(np.std(mae_increases)),
+                "prediction_correlation": correlation,
+            }
+        )
+
+    total_importance = sum(float(row["mae_increase"]) for row in rows)
+    for row in rows:
+        row["weight_percent"] = 0.0 if total_importance <= 0 else 100.0 * float(row["mae_increase"]) / total_importance
+    return sorted(rows, key=lambda row: float(row["weight_percent"]), reverse=True)
+
+
+def global_input_weights(target_weights: dict[str, list[dict[str, float | str]]]) -> list[dict[str, float | str]]:
+    combined = {column: 0.0 for column in FEATURE_COLUMNS}
+    for rows in target_weights.values():
+        for row in rows:
+            combined[str(row["input"])] += float(row["weight_percent"])
+    target_count = max(1, len(target_weights))
+    global_rows = [
+        {"input": column, "weight_percent": combined[column] / target_count}
+        for column in FEATURE_COLUMNS
+    ]
+    return sorted(global_rows, key=lambda row: float(row["weight_percent"]), reverse=True)
+
+
+def format_percent(value: float) -> str:
+    return f"{value:.2f}".replace(".", ",")
+
+
+def write_weights_report(metrics: dict[str, Any], path: Path = WEIGHTS_REPORT_FILE) -> None:
+    target_titles = {"d10": "D10", "d20": "D20", "gei": "GEI"}
+    lines = [
+        "# Pesos aprendidos por input no modelo ML",
+        "",
+        "## Metodo",
+        "",
+        "Os pesos abaixo foram calculados por importancia por permutacao nos 8 inputs originais. O treino embaralha um input por vez, mede quanto o MAE piora no modelo `production` e normaliza esse impacto para 100% dentro de cada saida.",
+        "",
+        "Esse metodo mede influencia preditiva aprendida pelo modelo, nao coeficiente fisico linear. Em modelos nao lineares, um input pode ter peso alto por efeito direto, interacao com outros inputs ou por atuar em regioes de threshold.",
+        "",
+        "## Peso global medio",
+        "",
+        "| Input | Peso medio |",
+        "| --- | ---: |",
+    ]
+
+    for row in metrics["global_input_weights"]:
+        lines.append(f"| `{row['input']}` | {format_percent(float(row['weight_percent']))}% |")
+
+    for target_name, title in target_titles.items():
+        lines.extend(
+            [
+                "",
+                f"## {title}",
+                "",
+                "| Input | Peso | Aumento medio do MAE | Correlação com previsão |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
+        for row in metrics["targets"][target_name]["input_weights"]:
+            lines.append(
+                "| "
+                f"`{row['input']}` | "
+                f"{format_percent(float(row['weight_percent']))}% | "
+                f"{float(row['mae_increase']):.6f} | "
+                f"{float(row['prediction_correlation']):.4f} |"
+            )
+
+    lines.extend(
+        [
+            "",
+            "## Leitura rapida",
+            "",
+            "- `Peso`: porcentagem da importancia relativa dentro da saida.",
+            "- `Aumento medio do MAE`: quanto o erro aumenta quando aquele input e embaralhado.",
+            "- `Correlação com previsão`: sinal aproximado da relacao entre o input bruto e a previsao do modelo; valores positivos tendem a aumentar a saida, negativos tendem a reduzir, mas interacoes e thresholds podem inverter localmente.",
+            "",
+        ]
+    )
+    try:
+        path.write_text("\n".join(lines), encoding="utf-8")
+    except OSError:
+        fallback_path = OUTPUT_DIR / path.name
+        fallback_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def evaluate_model(model: Pipeline, feature_frame: Any, target_values: np.ndarray, rounded_integer: bool = False) -> dict[str, Any]:
     fitted_model = clone(model).fit(feature_frame, target_values)
     train_predictions = fitted_model.predict(feature_frame)
@@ -201,6 +318,7 @@ def main() -> None:
     metrics = {
         "rows_degree": int(len(valid_degree_rows)),
         "rows_gei": int(len(valid_gei_rows)),
+        "input_weights_method": "permutation importance over original input columns; normalized MAE increase from production models",
         "targets": {},
     }
 
@@ -217,6 +335,7 @@ def main() -> None:
             "best_production_model": selected["best_name"],
             "candidate_metrics": selected["evaluations"],
             "oracle_train": regression_metrics(target_values, oracle_predictions),
+            "input_weights": permutation_input_weights(selected["best_model"], feature_frame, target_values),
         }
         if rounded_integer:
             metrics["targets"][target_name]["oracle_train"]["rounded_accuracy"] = float(
@@ -236,12 +355,19 @@ def main() -> None:
         "note": "anchored mode returns exact known external cases; production_models are selected by 5-fold CV; oracle_models use 1-NN and reproduce training rows exactly.",
     }
     metrics["anchor_predictions"] = anchor_predictions(bundle)
+    target_weights = {
+        target_name: payload["input_weights"]
+        for target_name, payload in metrics["targets"].items()
+    }
+    metrics["global_input_weights"] = global_input_weights(target_weights)
 
     joblib.dump(bundle, BUNDLE_FILE)
     METRICS_FILE.write_text(json.dumps(metrics, indent=2, ensure_ascii=False), encoding="utf-8")
+    write_weights_report(metrics)
 
     print(f"\nsaved_bundle={BUNDLE_FILE}")
     print(f"saved_metrics={METRICS_FILE}")
+    print(f"saved_weights_report={WEIGHTS_REPORT_FILE}")
     print(json.dumps(metrics["anchor_predictions"], indent=2, ensure_ascii=False))
 
 
