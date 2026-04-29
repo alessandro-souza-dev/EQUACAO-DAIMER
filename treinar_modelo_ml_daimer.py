@@ -42,7 +42,7 @@ from daimer_ml import (
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE = BASE_DIR / "Dados_Ensaios.xlsx"
+DATA_FILE = BASE_DIR / "scraping" / "Dados_Ensaios.xlsx"
 OUTPUT_DIR = Path.home() / "daimer_modelos_ml"
 BUNDLE_FILE = OUTPUT_DIR / "daimer_ml_bundle.joblib"
 METRICS_FILE = OUTPUT_DIR / "metricas_ml.json"
