@@ -29,10 +29,27 @@
     .tool-panel,
     .chart-panel,
     .weights-panel,
-    .result-panel {
+    .result-panel,
+    .calibration-panel {
       background: var(--surface);
       border: 1px solid var(--line);
       border-radius: 8px;
+    }
+
+    .daimer-tabs {
+      border-bottom-color: var(--line);
+    }
+
+    .daimer-tabs .nav-link {
+      border-radius: 6px 6px 0 0;
+      color: #475467;
+      font-weight: 750;
+      min-height: 2.45rem;
+    }
+
+    .daimer-tabs .nav-link.active {
+      color: var(--accent);
+      border-color: var(--line) var(--line) var(--surface);
     }
 
     .section-title {
@@ -184,6 +201,56 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .metric-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: .9rem;
+      height: 100%;
+    }
+
+    .metric-value {
+      font-size: clamp(1.1rem, 1.8vw, 1.55rem);
+      font-weight: 850;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .case-table {
+      font-size: .84rem;
+      vertical-align: middle;
+    }
+
+    .case-table th {
+      color: #475467;
+      font-size: .74rem;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .case-table td {
+      white-space: nowrap;
+    }
+
+    .case-name {
+      max-width: 13rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .calibration-actions .btn {
+      min-height: 2.25rem;
+    }
+
+    .hidden-file-input {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
     @media (max-width: 991.98px) {
       .chart-box {
         height: 360px;
@@ -201,6 +268,17 @@
       <div class="status-pill" id="modeBadge">Aguardando cálculo</div>
     </div>
 
+    <ul class="nav nav-tabs daimer-tabs mb-3" id="daimerTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="calculatorTab" data-bs-toggle="tab" data-bs-target="#calculatorPane" type="button" role="tab" aria-controls="calculatorPane" aria-selected="true">Calculadora DAIMER</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="calibrationTab" data-bs-toggle="tab" data-bs-target="#calibrationPane" type="button" role="tab" aria-controls="calibrationPane" aria-selected="false">Calibração supervisionada</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <section class="tab-pane fade show active" id="calculatorPane" role="tabpanel" aria-labelledby="calculatorTab" tabindex="0">
     <div class="row g-3 align-items-start">
       <div class="col-12 col-xl-4">
         <section class="tool-panel p-3 p-lg-4">
@@ -401,6 +479,223 @@
         </section>
       </div>
     </div>
+      </section>
+
+      <section class="tab-pane fade" id="calibrationPane" role="tabpanel" aria-labelledby="calibrationTab" tabindex="0">
+        <div class="row g-3 align-items-start">
+          <div class="col-12 col-xl-4">
+            <section class="calibration-panel p-3 p-lg-4">
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                <h2 class="section-title">Novo match real</h2>
+                <span class="status-pill" id="calibrationStatus">Sem casos</span>
+              </div>
+
+              <form id="calibrationForm" novalidate>
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label" for="cal_case_name">Identificação</label>
+                    <input class="form-control" id="cal_case_name" name="cal_case_name" type="text" placeholder="Ex.: Motor 01 - ensaio abril">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_ip">IP</label>
+                    <input class="form-control" id="cal_ip" name="cal_ip" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_delta_i">ΔI</label>
+                    <input class="form-control" id="cal_delta_i" name="cal_delta_i" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_pi1_vn">Pi1/Vn</label>
+                    <input class="form-control" id="cal_pi1_vn" name="cal_pi1_vn" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_pd">PD</label>
+                    <input class="form-control" id="cal_pd" name="cal_pd" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_delta_tan_delta">ΔTan δ</label>
+                    <input class="form-control" id="cal_delta_tan_delta" name="cal_delta_tan_delta" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_tang_delta_h">Tang δ (h)</label>
+                    <input class="form-control" id="cal_tang_delta_h" name="cal_tang_delta_h" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_tan_delta">Tan δ</label>
+                    <input class="form-control" id="cal_tan_delta" name="cal_tan_delta" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_h">H</label>
+                    <input class="form-control" id="cal_h" name="cal_h" type="number" step="any" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_tempo_operacao_anos">Tempo operação</label>
+                    <input class="form-control" id="cal_tempo_operacao_anos" name="cal_tempo_operacao_anos" type="number" step="any">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="cal_ajuste_historico_anos">Ajuste GEI</label>
+                    <input class="form-control" id="cal_ajuste_historico_anos" name="cal_ajuste_historico_anos" type="number" step="any" value="0">
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="real_d10">D10 real</label>
+                    <input class="form-control" id="real_d10" name="real_d10" type="number" step="any" required>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="real_d20">D20 real</label>
+                    <input class="form-control" id="real_d20" name="real_d20" type="number" step="any" required>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="real_gei">GEI real</label>
+                    <input class="form-control" id="real_gei" name="real_gei" type="number" step="any" required>
+                  </div>
+                </div>
+
+                <div class="alert alert-danger mt-3 mb-0 d-none" role="alert" id="calibrationAlert"></div>
+                <div class="alert alert-success mt-3 mb-0 d-none" role="alert" id="calibrationSuccess"></div>
+
+                <div class="d-grid gap-2 mt-3 calibration-actions">
+                  <button class="btn btn-primary" type="submit">Adicionar match e aprender</button>
+                  <button class="btn btn-outline-secondary" type="button" id="useCalculatorInputs">Usar entradas da calculadora</button>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <button class="btn btn-outline-secondary w-100" type="button" id="calLoadPdfCase">Caso PDF</button>
+                    </div>
+                    <div class="col-6">
+                      <button class="btn btn-outline-secondary w-100" type="button" id="calLoadCase2">Caso 2</button>
+                    </div>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <button class="btn btn-outline-primary w-100" type="button" id="exportCalibrationJson">Exportar JSON</button>
+                    </div>
+                    <div class="col-6">
+                      <button class="btn btn-outline-primary w-100" type="button" id="importCalibrationButton">Importar JSON</button>
+                    </div>
+                  </div>
+                  <input class="hidden-file-input" id="importCalibrationFile" type="file" accept="application/json,.json">
+                  <button class="btn btn-outline-danger" type="button" id="clearCalibrationCases">Limpar matches salvos</button>
+                </div>
+              </form>
+            </section>
+          </div>
+
+          <div class="col-12 col-xl-8">
+            <section class="calibration-panel p-3 p-lg-4 mb-3">
+              <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                <div>
+                  <h2 class="section-title">Previsão supervisionada</h2>
+                  <div class="muted-note">Compara a equação local com a correção aprendida pelos matches reais.</div>
+                </div>
+                <span class="status-pill" id="supervisedSource">Aguardando casos</span>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">D10 local</div>
+                    <div class="result-value" id="calProductionD10">--</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">D10 supervisionado</div>
+                    <div class="result-value" id="calSupervisedD10">--</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">D20 local</div>
+                    <div class="result-value" id="calProductionD20">--</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">D20 supervisionado</div>
+                    <div class="result-value" id="calSupervisedD20">--</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">Global local</div>
+                    <div class="result-value" id="calProductionGlobal">--</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">Global supervisionado</div>
+                    <div class="result-value" id="calSupervisedGlobal">--</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">GEI local</div>
+                    <div class="result-value" id="calProductionGei">--</div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="mini-output h-100">
+                    <div class="result-label">GEI supervisionado</div>
+                    <div class="result-value" id="calSupervisedGei">--</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row g-2" id="calibrationMetrics"></div>
+            </section>
+
+            <section class="calibration-panel p-3 p-lg-4 mb-3">
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                <h2 class="section-title">Pesos supervisionados</h2>
+                <span class="muted-note">Correção por resíduo em log10</span>
+              </div>
+              <div class="row g-3">
+                <div class="col-12 col-lg-4">
+                  <h3 class="mode-title mb-2">D10</h3>
+                  <div id="supervisedWeightsD10"></div>
+                </div>
+                <div class="col-12 col-lg-4">
+                  <h3 class="mode-title mb-2">D20</h3>
+                  <div id="supervisedWeightsD20"></div>
+                </div>
+                <div class="col-12 col-lg-4">
+                  <h3 class="mode-title mb-2">GEI</h3>
+                  <div id="supervisedWeightsGei"></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="calibration-panel p-3 p-lg-4">
+              <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                <div>
+                  <h2 class="section-title">Matches reais salvos</h2>
+                  <div class="muted-note">Cada linha realimenta a calibração local armazenada neste navegador.</div>
+                </div>
+                <span class="status-pill" id="caseCountBadge">0 casos</span>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm case-table align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Caso</th>
+                      <th>D10 local</th>
+                      <th>D10 real</th>
+                      <th>D20 local</th>
+                      <th>D20 real</th>
+                      <th>GEI local</th>
+                      <th>GEI real</th>
+                      <th>Erro local</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="calibrationCasesBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -502,6 +797,14 @@
       production: null,
       oracle: null
     };
+
+    const calibrationStorageKey = "daimerSupervisedCases.v1";
+    const calibrationTargetNames = ["d10", "d20", "gei"];
+    const calibrationFeatureNames = ["IP", "ΔI", "Pi1/Vn", "PD", "ΔTan δ", "Tang δ (h)", "Tan δ", "H"];
+    const targetLabels = { d10: "D10", d20: "D20", gei: "GEI" };
+
+    let supervisedCases = [];
+    let supervisedModel = null;
 
     const byId = (id) => document.getElementById(id);
     const round2 = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -984,6 +1287,550 @@
       renderWeights("weightsGlobal", learnedWeights.global);
     }
 
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function makeCaseId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function readInputWithPrefix(prefix) {
+      const input = {};
+      for (const field of fields) {
+        input[field] = parseNumber(byId(`${prefix}${field}`).value, field === "ajuste_historico_anos" ? 0 : NaN);
+      }
+      return input;
+    }
+
+    function writeInputWithPrefix(prefix, input) {
+      for (const field of fields) {
+        byId(`${prefix}${field}`).value = input[field] ?? "";
+      }
+    }
+
+    function readCalibrationTargets() {
+      const real = {
+        d10: parseNumber(byId("real_d10").value),
+        d20: parseNumber(byId("real_d20").value),
+        gei: parseNumber(byId("real_gei").value)
+      };
+      const missing = calibrationTargetNames.filter((targetName) => !Number.isFinite(real[targetName]));
+      if (missing.length) {
+        throw new Error("Preencha D10 real, D20 real e GEI real para ensinar o modelo.");
+      }
+      real.global = round2(real.d10 + real.d20);
+      return real;
+    }
+
+    function writeCalibrationTargets(targets) {
+      byId("real_d10").value = targets?.d10 ?? "";
+      byId("real_d20").value = targets?.d20 ?? "";
+      byId("real_gei").value = targets?.gei ?? "";
+    }
+
+    function loadCalibrationExample(example, targets, name) {
+      writeInputWithPrefix("cal_", example);
+      writeCalibrationTargets(targets);
+      byId("cal_case_name").value = name;
+      clearCalibrationMessages();
+      updateCalibrationPreview();
+    }
+
+    function inputsMatch(leftInput, rightInput, tolerance = ANCHOR_TOLERANCE) {
+      return requiredFields.every((field) => Math.abs(leftInput[field] - rightInput[field]) <= tolerance);
+    }
+
+    function calibrationFeatureVector(input) {
+      const marginValues = margins(input);
+      return [
+        1,
+        marginValues.ip,
+        marginValues.delta_i,
+        marginValues.pi1_vn,
+        marginValues.pd,
+        marginValues.delta_tan_delta,
+        marginValues.tang_delta_h,
+        marginValues.tan_delta,
+        marginValues.h
+      ];
+    }
+
+    function dotProduct(leftValues, rightValues) {
+      return leftValues.reduce((total, value, valueIndex) => total + value * (rightValues[valueIndex] ?? 0), 0);
+    }
+
+    function standardDeviation(values) {
+      if (values.length < 2) {
+        return 1;
+      }
+      const average = values.reduce((total, value) => total + value, 0) / values.length;
+      const variance = values.reduce((total, value) => total + ((value - average) ** 2), 0) / values.length;
+      return Math.sqrt(variance) || 1;
+    }
+
+    function solveLinearSystem(matrix, vector) {
+      const size = vector.length;
+      const augmented = matrix.map((row, rowIndex) => row.map(Number).concat(vector[rowIndex]));
+
+      for (let pivotColumn = 0; pivotColumn < size; pivotColumn += 1) {
+        let pivotRow = pivotColumn;
+        for (let candidateRow = pivotColumn + 1; candidateRow < size; candidateRow += 1) {
+          if (Math.abs(augmented[candidateRow][pivotColumn]) > Math.abs(augmented[pivotRow][pivotColumn])) {
+            pivotRow = candidateRow;
+          }
+        }
+
+        if (Math.abs(augmented[pivotRow][pivotColumn]) < 1e-12) {
+          return Array(size).fill(0);
+        }
+
+        if (pivotRow !== pivotColumn) {
+          [augmented[pivotColumn], augmented[pivotRow]] = [augmented[pivotRow], augmented[pivotColumn]];
+        }
+
+        const pivotValue = augmented[pivotColumn][pivotColumn];
+        for (let columnIndex = pivotColumn; columnIndex <= size; columnIndex += 1) {
+          augmented[pivotColumn][columnIndex] /= pivotValue;
+        }
+
+        for (let rowIndex = 0; rowIndex < size; rowIndex += 1) {
+          if (rowIndex === pivotColumn) {
+            continue;
+          }
+          const factor = augmented[rowIndex][pivotColumn];
+          for (let columnIndex = pivotColumn; columnIndex <= size; columnIndex += 1) {
+            augmented[rowIndex][columnIndex] -= factor * augmented[pivotColumn][columnIndex];
+          }
+        }
+      }
+
+      return augmented.map((row) => row[size] || 0);
+    }
+
+    function fitRidgeRegression(featureRows, targetValues, lambda = 0.22) {
+      const featureCount = featureRows[0].length;
+      const normalMatrix = Array.from({ length: featureCount }, () => Array(featureCount).fill(0));
+      const normalVector = Array(featureCount).fill(0);
+
+      for (let rowIndex = 0; rowIndex < featureRows.length; rowIndex += 1) {
+        const featureRow = featureRows[rowIndex];
+        const targetValue = targetValues[rowIndex];
+        for (let rowFeatureIndex = 0; rowFeatureIndex < featureCount; rowFeatureIndex += 1) {
+          normalVector[rowFeatureIndex] += featureRow[rowFeatureIndex] * targetValue;
+          for (let columnFeatureIndex = 0; columnFeatureIndex < featureCount; columnFeatureIndex += 1) {
+            normalMatrix[rowFeatureIndex][columnFeatureIndex] += featureRow[rowFeatureIndex] * featureRow[columnFeatureIndex];
+          }
+        }
+      }
+
+      for (let featureIndex = 0; featureIndex < featureCount; featureIndex += 1) {
+        normalMatrix[featureIndex][featureIndex] += featureIndex === 0 ? lambda * 0.05 : lambda;
+      }
+
+      return solveLinearSystem(normalMatrix, normalVector);
+    }
+
+    function supervisedWeightRows(coefficients, featureRows) {
+      const rawWeights = calibrationFeatureNames.map((featureName, featureIndex) => {
+        const modelIndex = featureIndex + 1;
+        const featureSpread = standardDeviation(featureRows.map((row) => row[modelIndex]));
+        return {
+          name: featureName,
+          value: Math.abs((coefficients[modelIndex] ?? 0) * featureSpread)
+        };
+      });
+      const totalWeight = rawWeights.reduce((total, row) => total + row.value, 0);
+      return rawWeights
+        .map((row) => [row.name, totalWeight > 0 ? 100 * row.value / totalWeight : 0])
+        .sort((leftRow, rightRow) => rightRow[1] - leftRow[1]);
+    }
+
+    function fitSupervisedModel(cases) {
+      if (!cases.length) {
+        return null;
+      }
+
+      const featureRows = cases.map((caseItem) => calibrationFeatureVector(caseItem.input));
+      const models = {};
+      for (const targetName of calibrationTargetNames) {
+        const residuals = cases.map((caseItem) => {
+          const production = calculateProduction(caseItem.input);
+          return caseItem.real[targetName] - production[targetName];
+        });
+        const coefficients = fitRidgeRegression(featureRows, residuals);
+        models[targetName] = {
+          coefficients,
+          weights: supervisedWeightRows(coefficients, featureRows)
+        };
+      }
+
+      const model = { models, caseCount: cases.length };
+      model.metrics = calibrationMetrics(cases, model);
+      return model;
+    }
+
+    function predictResidualCalibration(input, model) {
+      const production = calculateProduction(input);
+      const featureVector = calibrationFeatureVector(input);
+      const d10 = production.d10 + dotProduct(featureVector, model.models.d10.coefficients);
+      const d20 = production.d20 + dotProduct(featureVector, model.models.d20.coefficients);
+      const gei = production.gei + dotProduct(featureVector, model.models.gei.coefficients);
+      return {
+        d10: round2(d10),
+        d20: round2(d20),
+        global: round2(d10 + d20),
+        gei: roundInt(gei),
+        source: "Calibração supervisionada"
+      };
+    }
+
+    function predictSupervised(input, allowExactMatch = true) {
+      if (!supervisedModel) {
+        return null;
+      }
+      if (allowExactMatch) {
+        const exactCase = supervisedCases.find((caseItem) => inputsMatch(caseItem.input, input));
+        if (exactCase) {
+          return {
+            d10: round2(exactCase.real.d10),
+            d20: round2(exactCase.real.d20),
+            global: round2(exactCase.real.d10 + exactCase.real.d20),
+            gei: roundInt(exactCase.real.gei),
+            source: "Match real salvo"
+          };
+        }
+      }
+      return predictResidualCalibration(input, supervisedModel);
+    }
+
+    function calibrationMetrics(cases, model) {
+      const metrics = {};
+      for (const targetName of calibrationTargetNames) {
+        let productionError = 0;
+        let supervisedError = 0;
+        for (const caseItem of cases) {
+          const production = calculateProduction(caseItem.input);
+          const supervised = predictResidualCalibration(caseItem.input, model);
+          productionError += Math.abs(production[targetName] - caseItem.real[targetName]);
+          supervisedError += Math.abs(supervised[targetName] - caseItem.real[targetName]);
+        }
+        metrics[targetName] = {
+          productionMae: productionError / cases.length,
+          supervisedMae: supervisedError / cases.length
+        };
+      }
+      return metrics;
+    }
+
+    function loadSupervisedCases() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(calibrationStorageKey) || "[]");
+        return Array.isArray(stored) ? stored.map(normalizeCase).filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveSupervisedCases() {
+      localStorage.setItem(calibrationStorageKey, JSON.stringify(supervisedCases, null, 2));
+    }
+
+    function normalizeCase(caseItem) {
+      if (!caseItem || typeof caseItem !== "object") {
+        return null;
+      }
+      const input = {};
+      for (const field of fields) {
+        input[field] = parseNumber(caseItem.input?.[field], field === "ajuste_historico_anos" ? 0 : NaN);
+      }
+      const real = {
+        d10: parseNumber(caseItem.real?.d10),
+        d20: parseNumber(caseItem.real?.d20),
+        gei: parseNumber(caseItem.real?.gei)
+      };
+      if (requiredFields.some((field) => !Number.isFinite(input[field])) || calibrationTargetNames.some((targetName) => !Number.isFinite(real[targetName]))) {
+        return null;
+      }
+      real.global = round2(real.d10 + real.d20);
+      return {
+        id: String(caseItem.id || makeCaseId()),
+        name: String(caseItem.name || "Match supervisionado"),
+        input,
+        real,
+        production: calculateProduction(input),
+        createdAt: caseItem.createdAt || new Date().toISOString()
+      };
+    }
+
+    function rebuildSupervisedCalibration() {
+      supervisedModel = fitSupervisedModel(supervisedCases);
+      renderCalibrationStatus();
+      renderCalibrationMetrics();
+      renderSupervisedWeights();
+      renderCalibrationCases();
+      updateCalibrationPreview();
+    }
+
+    function renderCalibrationStatus() {
+      const caseText = `${supervisedCases.length} ${supervisedCases.length === 1 ? "caso" : "casos"}`;
+      byId("calibrationStatus").textContent = caseText;
+      byId("caseCountBadge").textContent = caseText;
+      byId("supervisedSource").textContent = supervisedModel ? "Modelo calibrado" : "Aguardando casos";
+    }
+
+    function metricCard(title, value, note) {
+      return `
+        <div class="col-12 col-md-4">
+          <div class="metric-card">
+            <div class="result-label">${escapeHtml(title)}</div>
+            <div class="metric-value">${escapeHtml(value)}</div>
+            <div class="muted-note mt-1">${escapeHtml(note)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCalibrationMetrics() {
+      const metricsContainer = byId("calibrationMetrics");
+      if (!supervisedModel) {
+        metricsContainer.innerHTML = metricCard("Matches", "0", "Adicione valores reais para iniciar.");
+        return;
+      }
+      metricsContainer.innerHTML = calibrationTargetNames.map((targetName) => {
+        const metric = supervisedModel.metrics[targetName];
+        return metricCard(
+          `MAE ${targetLabels[targetName]}`,
+          `${metric.productionMae.toFixed(2)} → ${metric.supervisedMae.toFixed(2)}`,
+          "Erro médio local para supervisionado"
+        );
+      }).join("");
+    }
+
+    function renderSupervisedWeights() {
+      if (!supervisedModel) {
+        ["supervisedWeightsD10", "supervisedWeightsD20", "supervisedWeightsGei"].forEach((containerId) => {
+          byId(containerId).innerHTML = '<div class="muted-note">Sem pesos supervisionados ainda.</div>';
+        });
+        return;
+      }
+      renderWeights("supervisedWeightsD10", supervisedModel.models.d10.weights);
+      renderWeights("supervisedWeightsD20", supervisedModel.models.d20.weights);
+      renderWeights("supervisedWeightsGei", supervisedModel.models.gei.weights);
+    }
+
+    function renderCalibrationCases() {
+      const tableBody = byId("calibrationCasesBody");
+      if (!supervisedCases.length) {
+        tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum match real salvo.</td></tr>';
+        return;
+      }
+      tableBody.innerHTML = supervisedCases.map((caseItem) => {
+        const production = calculateProduction(caseItem.input);
+        const localError = Math.abs(production.d10 - caseItem.real.d10)
+          + Math.abs(production.d20 - caseItem.real.d20)
+          + Math.abs(production.gei - caseItem.real.gei);
+        const createdDate = new Date(caseItem.createdAt).toLocaleDateString("pt-BR");
+        return `
+          <tr>
+            <td>
+              <div class="case-name fw-semibold" title="${escapeHtml(caseItem.name)}">${escapeHtml(caseItem.name)}</div>
+              <div class="muted-note">${escapeHtml(createdDate)}</div>
+            </td>
+            <td>${production.d10.toFixed(2)}</td>
+            <td>${caseItem.real.d10.toFixed(2)}</td>
+            <td>${production.d20.toFixed(2)}</td>
+            <td>${caseItem.real.d20.toFixed(2)}</td>
+            <td>${production.gei}</td>
+            <td>${roundInt(caseItem.real.gei)}</td>
+            <td>${localError.toFixed(2)}</td>
+            <td class="text-end">
+              <button class="btn btn-outline-secondary btn-sm" type="button" data-load-case="${escapeHtml(caseItem.id)}">Usar</button>
+              <button class="btn btn-outline-danger btn-sm" type="button" data-delete-case="${escapeHtml(caseItem.id)}">Excluir</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function clearCalibrationMessages() {
+      ["calibrationAlert", "calibrationSuccess"].forEach((messageId) => {
+        byId(messageId).textContent = "";
+        byId(messageId).classList.add("d-none");
+      });
+    }
+
+    function showCalibrationError(message) {
+      clearCalibrationMessages();
+      const alert = byId("calibrationAlert");
+      alert.textContent = message;
+      alert.classList.remove("d-none");
+    }
+
+    function showCalibrationSuccess(message) {
+      clearCalibrationMessages();
+      const success = byId("calibrationSuccess");
+      success.textContent = message;
+      success.classList.remove("d-none");
+    }
+
+    function updateCalibrationPreview() {
+      try {
+        const input = readInputWithPrefix("cal_");
+        validateInput(input);
+        const production = calculateProduction(input);
+        const supervised = predictSupervised(input) || production;
+        byId("calProductionD10").textContent = production.d10.toFixed(2);
+        byId("calProductionD20").textContent = production.d20.toFixed(2);
+        byId("calProductionGlobal").textContent = production.global.toFixed(2);
+        byId("calProductionGei").textContent = String(production.gei);
+        byId("calSupervisedD10").textContent = supervised.d10.toFixed(2);
+        byId("calSupervisedD20").textContent = supervised.d20.toFixed(2);
+        byId("calSupervisedGlobal").textContent = supervised.global.toFixed(2);
+        byId("calSupervisedGei").textContent = String(supervised.gei);
+        byId("supervisedSource").textContent = supervisedModel ? supervised.source : "Sem calibração";
+      } catch {
+        [
+          "calProductionD10", "calProductionD20", "calProductionGlobal", "calProductionGei",
+          "calSupervisedD10", "calSupervisedD20", "calSupervisedGlobal", "calSupervisedGei"
+        ].forEach((outputId) => byId(outputId).textContent = "--");
+        byId("supervisedSource").textContent = supervisedModel ? "Modelo calibrado" : "Aguardando casos";
+      }
+    }
+
+    function addSupervisedCase(event) {
+      event.preventDefault();
+      try {
+        const input = readInputWithPrefix("cal_");
+        validateInput(input);
+        const real = readCalibrationTargets();
+        const name = byId("cal_case_name").value.trim() || `Match ${supervisedCases.length + 1}`;
+        const caseItem = {
+          id: makeCaseId(),
+          name,
+          input,
+          real,
+          production: calculateProduction(input),
+          createdAt: new Date().toISOString()
+        };
+        const existingIndex = supervisedCases.findIndex((storedCase) => inputsMatch(storedCase.input, input));
+        if (existingIndex >= 0) {
+          caseItem.id = supervisedCases[existingIndex].id;
+          supervisedCases[existingIndex] = caseItem;
+          showCalibrationSuccess("Match existente atualizado e modelo recalibrado.");
+        } else {
+          supervisedCases.push(caseItem);
+          showCalibrationSuccess("Match salvo e modelo supervisionado recalibrado.");
+        }
+        saveSupervisedCases();
+        rebuildSupervisedCalibration();
+      } catch (error) {
+        showCalibrationError(error.message || "Nao foi possivel salvar o match.");
+      }
+    }
+
+    function copyCalculatorToCalibration() {
+      try {
+        const input = readInput();
+        validateInput(input);
+        writeInputWithPrefix("cal_", input);
+        byId("cal_case_name").value = "Novo match da calculadora";
+        clearCalibrationMessages();
+        updateCalibrationPreview();
+      } catch (error) {
+        showCalibrationError(error.message || "Calcule ou preencha a calculadora primeiro.");
+      }
+    }
+
+    function loadCaseIntoCalibration(caseId) {
+      const caseItem = supervisedCases.find((storedCase) => storedCase.id === caseId);
+      if (!caseItem) {
+        return;
+      }
+      writeInputWithPrefix("cal_", caseItem.input);
+      writeCalibrationTargets(caseItem.real);
+      byId("cal_case_name").value = caseItem.name;
+      clearCalibrationMessages();
+      updateCalibrationPreview();
+    }
+
+    function deleteCalibrationCase(caseId) {
+      supervisedCases = supervisedCases.filter((caseItem) => caseItem.id !== caseId);
+      saveSupervisedCases();
+      rebuildSupervisedCalibration();
+      showCalibrationSuccess("Match removido e modelo recalibrado.");
+    }
+
+    function clearCalibrationCases() {
+      supervisedCases = [];
+      saveSupervisedCases();
+      rebuildSupervisedCalibration();
+      showCalibrationSuccess("Todos os matches supervisionados foram removidos.");
+    }
+
+    function downloadTextFile(fileName, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    function exportCalibrationJson() {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        cases: supervisedCases
+      };
+      downloadTextFile("daimer-calibracao-supervisionada.json", JSON.stringify(payload, null, 2), "application/json");
+    }
+
+    function importCalibrationJson(file) {
+      if (!file) {
+        return;
+      }
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        try {
+          const payload = JSON.parse(String(reader.result || "{}"));
+          const importedCases = Array.isArray(payload) ? payload : payload.cases;
+          if (!Array.isArray(importedCases)) {
+            throw new Error("Arquivo JSON sem lista de casos.");
+          }
+          const normalizedCases = importedCases.map(normalizeCase).filter(Boolean);
+          if (!normalizedCases.length) {
+            throw new Error("Nenhum match valido encontrado no arquivo.");
+          }
+          for (const importedCase of normalizedCases) {
+            const existingIndex = supervisedCases.findIndex((storedCase) => inputsMatch(storedCase.input, importedCase.input));
+            if (existingIndex >= 0) {
+              supervisedCases[existingIndex] = importedCase;
+            } else {
+              supervisedCases.push(importedCase);
+            }
+          }
+          saveSupervisedCases();
+          rebuildSupervisedCalibration();
+          showCalibrationSuccess(`${normalizedCases.length} matches importados e modelo recalibrado.`);
+        } catch (error) {
+          showCalibrationError(error.message || "Nao foi possivel importar a calibracao.");
+        } finally {
+          byId("importCalibrationFile").value = "";
+        }
+      });
+      reader.readAsText(file, "utf-8");
+    }
+
     byId("daimerForm").addEventListener("submit", (event) => {
       event.preventDefault();
       runCalculation();
@@ -993,7 +1840,32 @@
     byId("loadCase2").addEventListener("click", () => loadExample(examples.case2));
     byId("clearForm").addEventListener("click", resetForm);
 
+    byId("calibrationForm").addEventListener("submit", addSupervisedCase);
+    byId("useCalculatorInputs").addEventListener("click", copyCalculatorToCalibration);
+    byId("calLoadPdfCase").addEventListener("click", () => loadCalibrationExample(examples.pdf, anchorCases[0].targets, "Anchor PDF"));
+    byId("calLoadCase2").addEventListener("click", () => loadCalibrationExample(examples.case2, anchorCases[1].targets, "Anchor Caso 2"));
+    byId("clearCalibrationCases").addEventListener("click", clearCalibrationCases);
+    byId("exportCalibrationJson").addEventListener("click", exportCalibrationJson);
+    byId("importCalibrationButton").addEventListener("click", () => byId("importCalibrationFile").click());
+    byId("importCalibrationFile").addEventListener("change", (event) => importCalibrationJson(event.target.files[0]));
+    byId("calibrationCasesBody").addEventListener("click", (event) => {
+      const loadButton = event.target.closest("[data-load-case]");
+      const deleteButton = event.target.closest("[data-delete-case]");
+      if (loadButton) {
+        loadCaseIntoCalibration(loadButton.dataset.loadCase);
+      }
+      if (deleteButton) {
+        deleteCalibrationCase(deleteButton.dataset.deleteCase);
+      }
+    });
+    for (const field of fields) {
+      byId(`cal_${field}`).addEventListener("input", updateCalibrationPreview);
+    }
+
     renderAllWeights();
+    supervisedCases = loadSupervisedCases();
+    rebuildSupervisedCalibration();
+    loadCalibrationExample(examples.pdf, anchorCases[0].targets, "Anchor PDF");
     loadExample(examples.pdf);
   </script>
 </body>
