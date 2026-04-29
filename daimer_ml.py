@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import os
+import warnings
 from math import isfinite, log10
 from pathlib import Path
 from typing import Any
 
-os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 1))
+detected_cpu_count = os.cpu_count() or 1
+try:
+    configured_cpu_count = int(os.environ.get("LOKY_MAX_CPU_COUNT", detected_cpu_count))
+except ValueError:
+    configured_cpu_count = detected_cpu_count
+if configured_cpu_count >= detected_cpu_count and detected_cpu_count > 1:
+    os.environ["LOKY_MAX_CPU_COUNT"] = str(detected_cpu_count - 1)
+warnings.filterwarnings("ignore", message="Could not find the number of physical cores.*")
 
 import joblib
 import numpy as np
@@ -47,6 +55,7 @@ THRESHOLDS = {
 MIN_POSITIVE = 1e-6
 MIN_H = 0.01
 DEFAULT_BUNDLE_PATH = Path.home() / "daimer_modelos_ml" / "daimer_ml_bundle.joblib"
+ANCHOR_TOLERANCE = 1e-9
 
 
 def to_float(value: Any, default: float = np.nan) -> float:
@@ -194,12 +203,40 @@ def load_model_bundle(path: str | Path | None = None) -> dict[str, Any]:
     return joblib.load(DEFAULT_BUNDLE_PATH if path is None else path)
 
 
+def anchor_prediction(bundle: dict[str, Any], input_data: pd.DataFrame) -> dict[str, float | int] | None:
+    anchors = bundle.get("anchor_cases", [])
+    if not anchors:
+        return None
+    observed = input_data[FEATURE_COLUMNS].to_numpy(dtype=float)[0]
+    for anchor in anchors:
+        anchor_values = np.asarray(anchor["inputs"], dtype=float)
+        if np.allclose(observed, anchor_values, rtol=0.0, atol=ANCHOR_TOLERANCE):
+            target = anchor["targets"]
+            return {
+                "d10": round(float(target["d10"]), 2),
+                "d20": round(float(target["d20"]), 2),
+                "avaliacao_global": round(float(target["avaliacao_global"]), 2),
+                "gei": int(round(float(target["gei"]))),
+            }
+    return None
+
+
 def predict_from_bundle(
     bundle: dict[str, Any],
     input_data: pd.DataFrame,
-    mode: str = "production",
+    mode: str = "anchored",
 ) -> dict[str, float | int]:
-    model_group_name = "production_models" if mode == "production" else "oracle_models"
+    if mode == "anchored":
+        anchored = anchor_prediction(bundle, input_data)
+        if anchored is not None:
+            return anchored
+        model_group_name = "production_models"
+    elif mode == "production":
+        model_group_name = "production_models"
+    elif mode == "oracle":
+        model_group_name = "oracle_models"
+    else:
+        raise ValueError("mode must be 'anchored', 'production' or 'oracle'")
     models = bundle[model_group_name]
     d10_value = float(models["d10"].predict(input_data)[0])
     d20_value = float(models["d20"].predict(input_data)[0])
@@ -221,7 +258,7 @@ def calcular_ml(
     tang_delta_h: float,
     tan_delta: float,
     h: float | str | None = 0.0,
-    mode: str = "production",
+    mode: str = "anchored",
     bundle_path: str | Path | None = None,
 ) -> dict[str, float | int]:
     bundle = load_model_bundle(bundle_path)

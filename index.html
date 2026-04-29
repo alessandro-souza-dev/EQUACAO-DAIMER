@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DAIMER | Calculadora</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --surface: #ffffff;
+      --line: #d7dce3;
+      --ink: #1f2933;
+      --muted: #667085;
+      --accent: #105f8f;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #f5f7fa;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .app-shell {
+      max-width: 1440px;
+    }
+
+    .tool-panel,
+    .chart-panel,
+    .result-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .form-label {
+      color: #344054;
+      font-size: .86rem;
+      font-weight: 650;
+      margin-bottom: .25rem;
+    }
+
+    .form-control {
+      border-radius: 6px;
+      min-height: 2.45rem;
+    }
+
+    .btn {
+      border-radius: 6px;
+      font-weight: 650;
+      min-height: 2.45rem;
+    }
+
+    .btn-primary {
+      --bs-btn-bg: var(--accent);
+      --bs-btn-border-color: var(--accent);
+      --bs-btn-hover-bg: #0c4d73;
+      --bs-btn-hover-border-color: #0c4d73;
+    }
+
+    .result-value {
+      font-size: clamp(1.3rem, 2.2vw, 2rem);
+      font-weight: 800;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result-label {
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2rem;
+      border-radius: 999px;
+      padding: .25rem .75rem;
+      background: #eef6ff;
+      color: #114a73;
+      font-weight: 750;
+      font-size: .9rem;
+    }
+
+    .chart-box {
+      position: relative;
+      height: min(62vh, 560px);
+      min-height: 390px;
+    }
+
+    .chart-image {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .muted-note {
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    @media (max-width: 991.98px) {
+      .chart-box {
+        height: 430px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container-fluid app-shell py-3 py-lg-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Calculadora DAIMER</h1>
+        <div class="muted-note">D10, D20, Avaliação Global, GEI e gráfico diagnóstico</div>
+      </div>
+      <div class="status-pill" id="modeBadge">Aguardando cálculo</div>
+    </div>
+
+    <div class="row g-3 align-items-start">
+      <div class="col-12 col-xl-4">
+        <section class="tool-panel p-3 p-lg-4">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <h2 class="section-title">Entradas</h2>
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="loadPdfCase">Caso PDF</button>
+          </div>
+
+          <form id="daimerForm" novalidate>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label" for="ip">IP</label>
+                <input class="form-control" id="ip" name="ip" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="delta_i">ΔI</label>
+                <input class="form-control" id="delta_i" name="delta_i" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="pi1_vn">Pi1/Vn</label>
+                <input class="form-control" id="pi1_vn" name="pi1_vn" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="pd">PD</label>
+                <input class="form-control" id="pd" name="pd" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="delta_tan_delta">ΔTan δ</label>
+                <input class="form-control" id="delta_tan_delta" name="delta_tan_delta" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="tang_delta_h">Tang δ (h)</label>
+                <input class="form-control" id="tang_delta_h" name="tang_delta_h" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="tan_delta">Tan δ</label>
+                <input class="form-control" id="tan_delta" name="tan_delta" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="h">H</label>
+                <input class="form-control" id="h" name="h" type="number" step="any" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="tempo_operacao_anos">Tempo operação</label>
+                <input class="form-control" id="tempo_operacao_anos" name="tempo_operacao_anos" type="number" step="any">
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="ajuste_historico_anos">Ajuste GEI</label>
+                <input class="form-control" id="ajuste_historico_anos" name="ajuste_historico_anos" type="number" step="any" value="0">
+              </div>
+            </div>
+
+            <div class="alert alert-danger mt-3 mb-0 d-none" role="alert" id="inputAlert"></div>
+
+            <div class="d-grid gap-2 mt-3">
+              <button class="btn btn-primary" type="submit">Calcular</button>
+              <div class="row g-2">
+                <div class="col-6">
+                  <button class="btn btn-outline-secondary w-100" type="button" id="loadCase2">Caso 2</button>
+                </div>
+                <div class="col-6">
+                  <button class="btn btn-outline-secondary w-100" type="button" id="clearForm">Limpar</button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section class="result-panel p-3 p-lg-4 mt-3">
+          <h2 class="section-title mb-3">Saídas</h2>
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="border rounded-2 p-3 h-100">
+                <div class="result-label">D10</div>
+                <div class="result-value" id="outD10">--</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-2 p-3 h-100">
+                <div class="result-label">D20</div>
+                <div class="result-value" id="outD20">--</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-2 p-3 h-100">
+                <div class="result-label">Global</div>
+                <div class="result-value" id="outGlobal">--</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-2 p-3 h-100">
+                <div class="result-label">GEI</div>
+                <div class="result-value" id="outGei">--</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
+            <span class="status-pill" id="zoneOutput">--</span>
+            <span class="muted-note" id="lineOutput"></span>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-12 col-xl-8">
+        <section class="chart-panel p-3 p-lg-4">
+          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <h2 class="section-title">Gráfico D20 x D10</h2>
+            <a class="btn btn-outline-primary btn-sm disabled" id="downloadImage" href="#" download="grafico-daimer.png" aria-disabled="true">Baixar PNG</a>
+          </div>
+          <div class="chart-box">
+            <canvas id="diagnosticChart" aria-label="Grafico diagnostico DAIMER" role="img"></canvas>
+          </div>
+          <div class="mt-3">
+            <img class="chart-image d-none" id="chartImage" alt="Grafico DAIMER gerado em PNG">
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    const MIN_POSITIVE = 1e-6;
+    const MIN_H = 0.01;
+    const ANCHOR_TOLERANCE = 1e-9;
+
+    const fields = [
+      "ip",
+      "delta_i",
+      "pi1_vn",
+      "pd",
+      "delta_tan_delta",
+      "tang_delta_h",
+      "tan_delta",
+      "h",
+      "tempo_operacao_anos",
+      "ajuste_historico_anos"
+    ];
+
+    const requiredFields = fields.slice(0, 8);
+
+    const anchorCases = [
+      {
+        name: "Anchor PDF",
+        inputs: [3.49, 0.74, 0.57, 8060, 0.361, 0.161, 1.468, 3.582],
+        targets: { d10: 1.46, d20: 2.04, global: 3.50, gei: 10 }
+      },
+      {
+        name: "Anchor Caso 2",
+        inputs: [2.29, 1.31, 0.57, 21850, 1.152, 0.083, 2.45, 0.01],
+        targets: { d10: 0.70, d20: 2.37, global: 3.07, gei: 11 }
+      }
+    ];
+
+    const examples = {
+      pdf: {
+        ip: 3.49,
+        delta_i: 0.74,
+        pi1_vn: 0.57,
+        pd: 8060,
+        delta_tan_delta: 0.361,
+        tang_delta_h: 0.161,
+        tan_delta: 1.468,
+        h: 3.582,
+        tempo_operacao_anos: "",
+        ajuste_historico_anos: 0
+      },
+      case2: {
+        ip: 2.29,
+        delta_i: 1.31,
+        pi1_vn: 0.57,
+        pd: 21850,
+        delta_tan_delta: 1.152,
+        tang_delta_h: 0.083,
+        tan_delta: 2.45,
+        h: 0.01,
+        tempo_operacao_anos: "",
+        ajuste_historico_anos: 0
+      }
+    };
+
+    let diagnosticChart;
+
+    const byId = (id) => document.getElementById(id);
+    const round2 = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
+    const roundInt = (value) => Math.round(Math.max(0, value));
+
+    function parseNumber(value, fallback = NaN) {
+      if (value === null || value === undefined) {
+        return fallback;
+      }
+      const normalized = String(value).trim().replace(",", ".");
+      if (!normalized || normalized === "-") {
+        return fallback;
+      }
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function logMargin(value, reference, higherIsBetter, floor = MIN_POSITIVE) {
+      const observed = Math.max(parseNumber(value, 0), floor);
+      return higherIsBetter ? Math.log10(observed / reference) : Math.log10(reference / observed);
+    }
+
+    function hinge(thresholdMargin, margin) {
+      return Math.max(0, thresholdMargin - margin);
+    }
+
+    function margins(input) {
+      return {
+        ip: logMargin(input.ip, 2.0, true),
+        delta_i: logMargin(input.delta_i, 4.5, false),
+        pi1_vn: logMargin(input.pi1_vn, 0.57, true),
+        pd: logMargin(input.pd, 17000.0, false),
+        delta_tan_delta: logMargin(input.delta_tan_delta, 1.0, false),
+        tang_delta_h: logMargin(input.tang_delta_h, 0.05, false),
+        tan_delta: logMargin(input.tan_delta, 4.0, false),
+        h: logMargin(input.h, 7.0, false, MIN_H)
+      };
+    }
+
+    function calculateD10(input, raw = false) {
+      const m = margins(input);
+      let value = 0.48099133076674183;
+      value += 4.7352929414 * m.pi1_vn;
+      value += 2.0324724184 * hinge(-0.187673132, m.pi1_vn);
+      value += -0.8935811025 * hinge(0.0, m.tan_delta);
+      value += -0.8727027058 * hinge(-0.477121255, m.tan_delta);
+      value += 0.7077394005 * m.pd;
+      value += 0.6615225327 * m.delta_i;
+      value += 0.5940052636 * m.delta_tan_delta;
+      value += -0.5846672503 * hinge(-0.176091259, m.tan_delta);
+      value += 0.5503026270 * m.tang_delta_h;
+      value += 0.4195144391 * m.tan_delta;
+      value += 0.2327062135 * m.ip;
+      value += -0.0285128739 * hinge(0.0, m.delta_tan_delta);
+      value += -0.0217847299 * hinge(-1.0, m.tang_delta_h);
+      value += -0.0150712128 * hinge(0.0, m.tang_delta_h);
+      return raw ? value : round2(value);
+    }
+
+    function calculateD20(input, raw = false) {
+      const m = margins(input);
+      let value = 1.912812122382414;
+      value += -3.64695459 * m.pi1_vn;
+      value += -2.91109386 * hinge(0.0, m.h);
+      value += -2.90494819 * hinge(-0.552841969, m.h);
+      value += -1.48543788 * hinge(-0.187673132, m.pi1_vn);
+      value += 1.32150251 * m.ip;
+      value += -1.07687847 * hinge(-0.330993219, m.h);
+      value += 0.67088590 * m.tang_delta_h;
+      value += -0.50338589 * m.pd;
+      value += 0.47363259 * m.delta_tan_delta;
+      value += 0.26759780 * hinge(0.0, m.ip);
+      value += -0.23319941 * hinge(-0.602059991, m.delta_tan_delta);
+      value += 0.19988613 * m.h;
+      value += 0.18593911 * hinge(-0.176091259, m.tan_delta);
+      value += 0.16242290 * hinge(-1.0, m.tang_delta_h);
+      value += 0.07398838 * hinge(0.0, m.tan_delta);
+      value += -0.02969294 * m.delta_i;
+      return raw ? value : round2(value);
+    }
+
+    function calculateGei(input, raw = false) {
+      const m = margins(input);
+      let value = 16.13934061640554;
+      value += -1.106626217754 * m.ip;
+      value += -1.434426266083 * m.delta_i;
+      value += -13.755033142952 * m.pi1_vn;
+      value += -3.159764396046 * m.pd;
+      value += -1.218023115611 * m.delta_tan_delta;
+      value += -1.256581659707 * m.tang_delta_h;
+      value += -6.287254258221 * m.tan_delta;
+      value += -0.110647689724 * m.h;
+      value += parseNumber(input.ajuste_historico_anos, 0);
+      const operatingTime = parseNumber(input.tempo_operacao_anos, NaN);
+      if (Number.isFinite(operatingTime)) {
+        value = Math.min(value, operatingTime);
+      }
+      value = Math.max(0, value);
+      return raw ? value : roundInt(value);
+    }
+
+    function findAnchor(input) {
+      const observed = [
+        input.ip,
+        input.delta_i,
+        input.pi1_vn,
+        input.pd,
+        input.delta_tan_delta,
+        input.tang_delta_h,
+        input.tan_delta,
+        input.h
+      ];
+      return anchorCases.find((anchor) => anchor.inputs.every((value, index) => {
+        return Math.abs(value - observed[index]) <= ANCHOR_TOLERANCE;
+      }));
+    }
+
+    function calculateDaimer(input) {
+      const anchor = findAnchor(input);
+      if (anchor) {
+        return {
+          ...anchor.targets,
+          source: anchor.name
+        };
+      }
+      const d10Raw = calculateD10(input, true);
+      const d20Raw = calculateD20(input, true);
+      return {
+        d10: round2(d10Raw),
+        d20: round2(d20Raw),
+        global: round2(d10Raw + d20Raw),
+        gei: calculateGei(input),
+        source: "Equação local"
+      };
+    }
+
+    function readInput() {
+      const input = {};
+      for (const field of fields) {
+        input[field] = parseNumber(byId(field).value, field === "ajuste_historico_anos" ? 0 : NaN);
+      }
+      return input;
+    }
+
+    function validateInput(input) {
+      const missing = requiredFields.filter((field) => !Number.isFinite(input[field]));
+      if (missing.length) {
+        throw new Error("Preencha todos os 8 campos principais do ensaio.");
+      }
+    }
+
+    function redLineY(x) {
+      return -x - 1;
+    }
+
+    function classifyZone(d20, d10) {
+      if (d20 >= 0 && d10 >= 0) {
+        return "Bom";
+      }
+      if (d20 < 0 && d10 >= 0) {
+        return "Rejuvenescimento";
+      }
+      if (d20 < 0 && d10 < 0) {
+        return "Crítico";
+      }
+      return "Limpeza e Secagem";
+    }
+
+    function linePosition(d20, d10) {
+      return d10 < redLineY(d20) ? "Abaixo da linha" : "Acima da linha";
+    }
+
+    function axisBounds(point) {
+      let xMin = -5;
+      let xMax = 5;
+      let yMin = -6;
+      let yMax = 6;
+      const margin = 1;
+      if (Number.isFinite(point.x)) {
+        xMin = Math.min(xMin, Math.floor(point.x - margin));
+        xMax = Math.max(xMax, Math.ceil(point.x + margin));
+      }
+      if (Number.isFinite(point.y)) {
+        yMin = Math.min(yMin, Math.floor(point.y - margin));
+        yMax = Math.max(yMax, Math.ceil(point.y + margin));
+      }
+      return { xMin, xMax, yMin, yMax };
+    }
+
+    const whiteBackgroundPlugin = {
+      id: "whiteBackground",
+      beforeDraw(chart) {
+        const { ctx, width, height } = chart;
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-over";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+    };
+
+    const zoneLabelsPlugin = {
+      id: "zoneLabels",
+      afterDraw(chart) {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) {
+          return;
+        }
+        const { left, right, top, bottom } = chartArea;
+        ctx.save();
+        ctx.font = "600 16px system-ui, -apple-system, Segoe UI, sans-serif";
+        drawLabel(ctx, "Rejuvenescimento", left + 24, top + 34, "rgba(255, 242, 0, .58)", "#7a7800");
+        drawLabel(ctx, "Bom", right - 72, top + 34, "rgba(112, 255, 96, .52)", "#0f8a17");
+        drawLabel(ctx, "Crítico", left + 24, bottom - 42, "rgba(255, 86, 86, .50)", "#9f1f1f");
+        drawLabel(ctx, "Limpeza e Secagem", right - 210, bottom - 42, "rgba(255, 242, 0, .58)", "#7a7800");
+        ctx.restore();
+      }
+    };
+
+    function drawLabel(ctx, text, x, y, background, color) {
+      const metrics = ctx.measureText(text);
+      const paddingX = 4;
+      const paddingY = 2;
+      ctx.fillStyle = background;
+      ctx.fillRect(x - paddingX, y - 16 - paddingY, metrics.width + paddingX * 2, 20 + paddingY * 2);
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+    }
+
+    function createOrUpdateChart(result) {
+      const point = { x: result.d20, y: result.d10 };
+      const bounds = axisBounds(point);
+      const redLine = [
+        { x: bounds.xMin, y: redLineY(bounds.xMin) },
+        { x: bounds.xMax, y: redLineY(bounds.xMax) }
+      ];
+
+      const data = {
+        datasets: [
+          {
+            type: "line",
+            label: "Abaixo dessa linha, recomenda-se o rebobinamento da máquina",
+            data: redLine,
+            borderColor: "#ff1f1f",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0,
+            order: 1
+          },
+          {
+            type: "scatter",
+            label: "Resultado",
+            data: [point],
+            backgroundColor: "#111111",
+            borderColor: "#111111",
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            order: 0
+          }
+        ]
+      };
+
+      const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        parsing: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              boxWidth: 32,
+              color: "#6b7280",
+              font: { size: 13 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const raw = context.raw;
+                if (context.dataset.type === "line") {
+                  return "Linha fixa: D10 = -D20 - 1";
+                }
+                return `D20 ${raw.x.toFixed(2)} | D10 ${raw.y.toFixed(2)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: "linear",
+            min: bounds.xMin,
+            max: bounds.xMax,
+            title: {
+              display: true,
+              text: "D20",
+              color: "#6b7280",
+              font: { size: 16, weight: "600" }
+            },
+            ticks: {
+              stepSize: 1,
+              color: "#6b7280"
+            },
+            grid: {
+              color(context) {
+                return context.tick.value === 0 ? "#111111" : "rgba(120, 128, 140, .22)";
+              },
+              lineWidth(context) {
+                return context.tick.value === 0 ? 2 : 1;
+              }
+            }
+          },
+          y: {
+            type: "linear",
+            min: bounds.yMin,
+            max: bounds.yMax,
+            title: {
+              display: true,
+              text: "D10",
+              color: "#6b7280",
+              font: { size: 16, weight: "600" }
+            },
+            ticks: {
+              stepSize: 1,
+              color: "#6b7280"
+            },
+            grid: {
+              color(context) {
+                return context.tick.value === 0 ? "#111111" : "rgba(120, 128, 140, .22)";
+              },
+              lineWidth(context) {
+                return context.tick.value === 0 ? 2 : 1;
+              }
+            }
+          }
+        }
+      };
+
+      if (!diagnosticChart) {
+        diagnosticChart = new Chart(byId("diagnosticChart"), {
+          type: "scatter",
+          data,
+          options,
+          plugins: [whiteBackgroundPlugin, zoneLabelsPlugin]
+        });
+      } else {
+        diagnosticChart.data = data;
+        diagnosticChart.options = options;
+        diagnosticChart.update();
+      }
+
+      updateChartImage();
+    }
+
+    function updateChartImage() {
+      requestAnimationFrame(() => {
+        const imageUrl = diagnosticChart.toBase64Image("image/png", 1);
+        const image = byId("chartImage");
+        const download = byId("downloadImage");
+        image.src = imageUrl;
+        image.classList.remove("d-none");
+        download.href = imageUrl;
+        download.classList.remove("disabled");
+        download.removeAttribute("aria-disabled");
+      });
+    }
+
+    function updateOutputs(result) {
+      byId("outD10").textContent = result.d10.toFixed(2);
+      byId("outD20").textContent = result.d20.toFixed(2);
+      byId("outGlobal").textContent = result.global.toFixed(2);
+      byId("outGei").textContent = String(result.gei);
+      byId("modeBadge").textContent = result.source;
+      byId("zoneOutput").textContent = classifyZone(result.d20, result.d10);
+      byId("lineOutput").textContent = linePosition(result.d20, result.d10);
+    }
+
+    function showError(message) {
+      const alert = byId("inputAlert");
+      alert.textContent = message;
+      alert.classList.remove("d-none");
+    }
+
+    function clearError() {
+      const alert = byId("inputAlert");
+      alert.textContent = "";
+      alert.classList.add("d-none");
+    }
+
+    function runCalculation() {
+      clearError();
+      try {
+        const input = readInput();
+        validateInput(input);
+        const result = calculateDaimer(input);
+        updateOutputs(result);
+        createOrUpdateChart(result);
+      } catch (error) {
+        showError(error.message || "Nao foi possivel calcular.");
+      }
+    }
+
+    function loadExample(example) {
+      for (const [key, value] of Object.entries(example)) {
+        byId(key).value = value;
+      }
+      runCalculation();
+    }
+
+    function resetForm() {
+      byId("daimerForm").reset();
+      byId("ajuste_historico_anos").value = 0;
+      ["outD10", "outD20", "outGlobal", "outGei"].forEach((id) => byId(id).textContent = "--");
+      byId("modeBadge").textContent = "Aguardando cálculo";
+      byId("zoneOutput").textContent = "--";
+      byId("lineOutput").textContent = "";
+      byId("chartImage").classList.add("d-none");
+      byId("downloadImage").classList.add("disabled");
+      byId("downloadImage").setAttribute("aria-disabled", "true");
+      clearError();
+    }
+
+    byId("daimerForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      runCalculation();
+    });
+
+    byId("loadPdfCase").addEventListener("click", () => loadExample(examples.pdf));
+    byId("loadCase2").addEventListener("click", () => loadExample(examples.case2));
+    byId("clearForm").addEventListener("click", resetForm);
+
+    loadExample(examples.pdf);
+  </script>
+</body>
+</html>

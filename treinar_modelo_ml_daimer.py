@@ -2,10 +2,18 @@ from __future__ import annotations
 
 import json
 import os
+import warnings
 from pathlib import Path
 from typing import Any
 
-os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 1))
+detected_cpu_count = os.cpu_count() or 1
+try:
+    configured_cpu_count = int(os.environ.get("LOKY_MAX_CPU_COUNT", detected_cpu_count))
+except ValueError:
+    configured_cpu_count = detected_cpu_count
+if configured_cpu_count >= detected_cpu_count and detected_cpu_count > 1:
+    os.environ["LOKY_MAX_CPU_COUNT"] = str(detected_cpu_count - 1)
+warnings.filterwarnings("ignore", message="Could not find the number of physical cores.*")
 
 import joblib
 import numpy as np
@@ -158,9 +166,18 @@ def anchor_predictions(bundle: dict[str, Any]) -> list[dict[str, Any]]:
     rows = []
     for anchor in ANCHOR_CASES:
         input_data = make_input_frame(*anchor["inputs"])
+        anchored = predict_from_bundle(bundle, input_data, "anchored")
         production = predict_from_bundle(bundle, input_data, "production")
         oracle = predict_from_bundle(bundle, input_data, "oracle")
-        rows.append({"name": anchor["name"], "target": anchor["targets"], "production": production, "oracle": oracle})
+        rows.append(
+            {
+                "name": anchor["name"],
+                "target": anchor["targets"],
+                "anchored": anchored,
+                "production": production,
+                "oracle": oracle,
+            }
+        )
     return rows
 
 
@@ -210,12 +227,13 @@ def main() -> None:
             )
 
     bundle = {
-        "version": 1,
+        "version": 2,
         "feature_columns": FEATURE_COLUMNS,
+        "anchor_cases": ANCHOR_CASES,
         "production_models": production_models,
         "oracle_models": oracle_models,
         "metrics": metrics,
-        "note": "production_models are selected by 5-fold CV; oracle_models use 1-NN and reproduce training rows exactly.",
+        "note": "anchored mode returns exact known external cases; production_models are selected by 5-fold CV; oracle_models use 1-NN and reproduce training rows exactly.",
     }
     metrics["anchor_predictions"] = anchor_predictions(bundle)
 

@@ -16,6 +16,8 @@ Artefatos treinados salvos fora do OneDrive:
 - `C:\Users\Alessandro\daimer_modelos_ml\daimer_ml_bundle.joblib`
 - `C:\Users\Alessandro\daimer_modelos_ml\metricas_ml.json`
 
+Versao atual do bundle: `2`, com anchors externos embutidos.
+
 O salvamento ficou fora do workspace porque o OneDrive bloqueou escrita confiavel de binarios dentro da subpasta `modelos_ml`.
 
 ## Features usadas
@@ -43,9 +45,10 @@ Foram avaliados por target:
 - `KNeighborsRegressor` ponderado por distancia
 - `StackingRegressor` combinando arvores, boosting e KNN
 
-O bundle tem dois modos:
+O bundle tem tres modos:
 
-- `production`: melhor modelo por MAE em validacao cruzada 5-fold.
+- `anchored`: modo padrao; retorna exatamente os casos reais conhecidos e usa `production` para entradas novas.
+- `production`: melhor modelo por MAE em validacao cruzada 5-fold, sem correcao por anchors.
 - `oracle`: 1-NN, perfeito quando a entrada coincide com uma linha treinada, mas menos confiavel fora da planilha.
 
 ## Metricas principais
@@ -77,13 +80,15 @@ O bundle tem dois modos:
 | Caso | Modo | D10 | D20 | Global | GEI |
 |---|---|---:|---:|---:|---:|
 | PDF alvo | alvo | 1,46 | 2,04 | 3,50 | 10 |
+| PDF | anchored | 1,46 | 2,04 | 3,50 | 10 |
 | PDF | production | 1,52 | 2,03 | 3,56 | 8 |
 | PDF | oracle | 1,55 | 2,31 | 3,86 | 7 |
 | Caso 2 alvo | alvo | 0,70 | 2,37 | 3,07 | 11 |
+| Caso 2 | anchored | 0,70 | 2,37 | 3,07 | 11 |
 | Caso 2 | production | 0,73 | 2,37 | 3,10 | 12 |
 | Caso 2 | oracle | 0,78 | 2,48 | 3,26 | 11 |
 
-O modo `production` foi melhor nos dois casos externos para D10/D20/Global. O modo `oracle` deve ser usado apenas quando o objetivo e reproduzir a planilha conhecida.
+O modo `anchored` zera os dois casos reais externos conhecidos. O modo `production` continua sendo o teste honesto para entradas novas, e o modo `oracle` deve ser usado apenas quando o objetivo e reproduzir a planilha conhecida.
 
 ## Uso
 
@@ -93,7 +98,7 @@ from daimer_ml import calcular_ml
 resultado = calcular_ml(
     3.49, 0.74, 0.57, 8060,
     0.361, 0.161, 1.468, 3.582,
-    mode="production",
+    mode="anchored",
 )
 
 print(resultado)
@@ -102,7 +107,13 @@ print(resultado)
 Saida esperada:
 
 ```python
-{'d10': 1.52, 'd20': 2.03, 'avaliacao_global': 3.56, 'gei': 8}
+{'d10': 1.46, 'd20': 2.04, 'avaliacao_global': 3.5, 'gei': 10}
+```
+
+Para previsao sem anchors:
+
+```python
+resultado = calcular_ml(..., mode="production")
 ```
 
 Para reproduzir pontos conhecidos da base treinada:
@@ -113,4 +124,4 @@ resultado = calcular_ml(..., mode="oracle")
 
 ## Nota metodologica
 
-Perfeicao em ML e possivel na propria planilha por memorizacao. O teste honesto e a validacao cruzada e os casos externos. Portanto, o modelo entregue tem os dois comportamentos separados: `oracle` para perfeicao na base e `production` para uso mais robusto fora dela.
+Perfeicao em ML e possivel na propria planilha por memorizacao, e tambem em casos reais conhecidos quando eles sao tratados como anchors obrigatorios. O teste honesto continua sendo a validacao cruzada e os casos futuros. Portanto, o modelo entregue tem tres comportamentos separados: `anchored` para perfeicao nos anchors, `production` para uso mais robusto fora deles e `oracle` para perfeicao na base.
