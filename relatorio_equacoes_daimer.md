@@ -35,6 +35,28 @@ m_h     = log10(7,0 / max(H, 0,01))
 L(t, m) = max(0, t - m)
 ```
 
+### Por que usar log10
+
+Os inputs originais estao em escalas e unidades diferentes: resistencia/indice, porcentagem, grandezas eletricas e valores que podem ir de casas decimais ate dezenas de milhares. Por isso, a equacao nao soma os valores brutos diretamente.
+
+Cada variavel primeiro vira uma razao contra uma referencia tecnica do relatorio. Essa razao remove a unidade direta e transforma o input em margem adimensional. Depois aplica-se `log10`, para que diferencas multiplicativas fiquem comparaveis entre si.
+
+Exemplos:
+
+```text
+PD bruto = 8060              -> m_pd = log10(17000 / 8060)
+IP bruto = 3,49              -> m_ip = log10(3,49 / 2,0)
+TanDelta bruto = 1,468       -> m_td = log10(4,0 / 1,468)
+```
+
+Assim, a base comum da equacao e:
+
+```text
+input bruto -> razao contra referencia tecnica -> log10 -> termos piecewise -> soma ponderada
+```
+
+Os termos `L(t, m)` mantem a mesma base logaritmica, mas permitem mudar a inclinacao da equacao quando a margem passa por um threshold tecnico.
+
 ### D10
 
 ```text
@@ -118,7 +140,7 @@ Se `TempoOperacao` e `tau_historico` nao forem conhecidos, `GEI_base` e apenas u
 Planilha, 388 linhas validas para D10/D20/Global:
 
 | Saida | MAE | RMSE | R2 | Erro maximo absoluto |
-|---|---:|---:|---:|---:|
+| --- | ---: | ---: | ---: | ---: |
 | D10 | 0,024308 | 0,032790 | 0,999345 | 0,145514 |
 | D20 | 0,095036 | 0,113986 | 0,985208 | 0,276252 |
 | Avaliacao Global | 0,092763 | 0,110634 | 0,995482 | 0,256284 |
@@ -126,13 +148,13 @@ Planilha, 388 linhas validas para D10/D20/Global:
 GEI, 363 linhas com alvo preenchido:
 
 | Saida | MAE continuo | RMSE continuo | R2 | Acuracia apos round | MAE apos round |
-|---|---:|---:|---:|---:|---:|
+| --- | ---: | ---: | ---: | ---: | ---: |
 | GEI_base | 2,033737 | 2,730859 | 0,750951 | 0,187328 | 2,005510 |
 
 Casos reais externos:
 
 | Caso | D10 alvo | D10 pred | erro | D20 alvo | D20 pred | erro | Global alvo | Global pred | erro | GEI alvo | GEI pred sem historico | erro |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | PDF | 1,46 | 1,44 | 0,02 | 2,04 | 1,97 | 0,07 | 3,50 | 3,42 | 0,08 | 10 | 11 | 1 |
 | Caso 2 | 0,70 | 0,70 | 0,00 | 2,37 | 2,42 | 0,05 | 3,07 | 3,12 | 0,05 | 11 | 14 | 3 |
 

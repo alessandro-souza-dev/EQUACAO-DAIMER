@@ -34,6 +34,18 @@ O transformador `DaimerFeatureTransformer` gera:
 
 Isso permite que modelos nao lineares aprendam tanto regioes suaves quanto quebras estruturais nos limites tecnicos.
 
+## Normalizacao das unidades
+
+Os inputs do ensaio nao estao na mesma escala fisica. Ha variaveis em porcentagem, indices, grandezas eletricas e valores como `PD`, que podem estar em milhares. Se esses valores entrassem crus no modelo, a escala numerica poderia dominar a aprendizagem sem representar importancia fisica real.
+
+Por isso, o modelo usa razoes contra referencias tecnicas e margens `log10`. A razao transforma cada input em uma medida adimensional; o `log10` coloca variacoes multiplicativas em uma escala comparavel. Em seguida, os termos piecewise/hinge permitem que o modelo mude de comportamento em regioes de threshold.
+
+Base conceitual:
+
+```text
+input bruto -> razao contra referencia tecnica -> log10 -> hinges/termos derivados -> modelo
+```
+
 ## Pesos aprendidos por input
 
 O treino calcula importancia por permutacao nos 8 inputs originais. Cada input e embaralhado isoladamente e o impacto no MAE do modelo `production` vira um peso percentual por saida.
