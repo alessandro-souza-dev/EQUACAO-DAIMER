@@ -117,6 +117,12 @@
       min-height: 320px;
     }
 
+    .history-chart-box {
+      position: relative;
+      height: 330px;
+      min-height: 300px;
+    }
+
     .chart-card {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -275,6 +281,9 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="calibrationTab" data-bs-toggle="tab" data-bs-target="#calibrationPane" type="button" role="tab" aria-controls="calibrationPane" aria-selected="false">Calibração supervisionada</button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="historyTab" data-bs-toggle="tab" data-bs-target="#historyPane" type="button" role="tab" aria-controls="historyPane" aria-selected="false">Histórico da planilha</button>
+      </li>
     </ul>
 
     <div class="tab-content">
@@ -432,8 +441,8 @@
             <div class="col-12 col-lg-8">
               <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
                 <div>
-                  <h2 class="section-title">Gráficos X=D10, Y=D20</h2>
-                  <div class="muted-note">X: degradação | Y: contaminação</div>
+                  <h2 class="section-title">Gráficos X=D20, Y=D10</h2>
+                  <div class="muted-note">X: contaminação | Y: deterioração</div>
                 </div>
               </div>
 
@@ -466,10 +475,10 @@
                 <div class="muted-note mb-3">Importância por permutação</div>
 
                 <h3 class="mode-title mb-2">Eixo X | Contaminação D20</h3>
-                <div id="weightsD10" class="mb-4"></div>
+                <div id="weightsD20" class="mb-4"></div>
 
                 <h3 class="mode-title mb-2">Eixo Y | Deterioração D10</h3>
-                <div id="weightsD20" class="mb-4"></div>
+                <div id="weightsD10" class="mb-4"></div>
 
                 <h3 class="mode-title mb-2">Peso médio global</h3>
                 <div id="weightsGlobal"></div>
@@ -695,14 +704,74 @@
           </div>
         </div>
       </section>
+
+      <section class="tab-pane fade" id="historyPane" role="tabpanel" aria-labelledby="historyTab" tabindex="0">
+        <section class="chart-panel p-3 p-lg-4 mb-3">
+          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+              <h2 class="section-title">Histórico de ensaios</h2>
+              <div class="muted-note">Valores reais da planilha comparados com Produção e Oráculo de anchors.</div>
+            </div>
+            <span class="status-pill" id="historyDatasetStatus">Aguardando dados</span>
+          </div>
+          <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch" id="historyCleanOnly" checked>
+              <label class="form-check-label" for="historyCleanOnly">Usar base limpa</label>
+            </div>
+            <span class="muted-note" id="historyCleanNote"></span>
+          </div>
+          <div class="row g-2" id="historySummary"></div>
+        </section>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <section class="chart-panel p-3 p-lg-4">
+              <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                <h3 class="mode-title">D10 | Deterioração</h3>
+                <span class="muted-note" id="historyD10Metric"></span>
+              </div>
+              <div class="history-chart-box">
+                <canvas id="historyD10Chart" aria-label="Historico D10 real, producao e oraculo" role="img"></canvas>
+              </div>
+            </section>
+          </div>
+
+          <div class="col-12">
+            <section class="chart-panel p-3 p-lg-4">
+              <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                <h3 class="mode-title">D20 | Contaminação</h3>
+                <span class="muted-note" id="historyD20Metric"></span>
+              </div>
+              <div class="history-chart-box">
+                <canvas id="historyD20Chart" aria-label="Historico D20 real, producao e oraculo" role="img"></canvas>
+              </div>
+            </section>
+          </div>
+
+          <div class="col-12">
+            <section class="chart-panel p-3 p-lg-4">
+              <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                <h3 class="mode-title">GEI | Envelhecimento</h3>
+                <span class="muted-note" id="historyGeiMetric"></span>
+              </div>
+              <div class="history-chart-box">
+                <canvas id="historyGeiChart" aria-label="Historico GEI real, producao e oraculo" role="img"></canvas>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="historico_dados_ensaios.js"></script>
   <script>
     const MIN_POSITIVE = 1e-6;
     const MIN_H = 0.01;
+    const LOG20_FACTOR = Math.log10(20);
     const ANCHOR_TOLERANCE = 1e-9;
 
     const fields = [
@@ -795,8 +864,17 @@
 
     const charts = {
       production: null,
-      oracle: null
+      oracle: null,
+      historyD10: null,
+      historyD20: null,
+      historyGei: null
     };
+
+    const historyTargets = [
+      { key: "d10", label: "D10", title: "D10", chartId: "historyD10Chart", metricId: "historyD10Metric", chartKey: "historyD10", digits: 2 },
+      { key: "d20", label: "D20", title: "D20", chartId: "historyD20Chart", metricId: "historyD20Metric", chartKey: "historyD20", digits: 2 },
+      { key: "gei", label: "GEI", title: "GEI", chartId: "historyGeiChart", metricId: "historyGeiMetric", chartKey: "historyGei", digits: 0 }
+    ];
 
     const calibrationStorageKey = "daimerSupervisedCases.v1";
     const calibrationTargetNames = ["d10", "d20", "gei"];
@@ -822,25 +900,34 @@
       return Number.isFinite(parsed) ? parsed : fallback;
     }
 
-    function logMargin(value, reference, higherIsBetter, floor = MIN_POSITIVE) {
+    function logMargin(value, reference, higherIsBetter, floor = MIN_POSITIVE, logBase = 10) {
       const observed = Math.max(parseNumber(value, 0), floor);
-      return higherIsBetter ? Math.log10(observed / reference) : Math.log10(reference / observed);
+      const margin = higherIsBetter ? Math.log10(observed / reference) : Math.log10(reference / observed);
+      return logBase === 20 ? margin / LOG20_FACTOR : margin;
+    }
+
+    function log20Threshold(thresholdLog10) {
+      return thresholdLog10 / LOG20_FACTOR;
+    }
+
+    function log20Coefficient(coefficientLog10) {
+      return coefficientLog10 * LOG20_FACTOR;
     }
 
     function hinge(thresholdMargin, margin) {
       return Math.max(0, thresholdMargin - margin);
     }
 
-    function margins(input) {
+    function margins(input, logBase = 10) {
       return {
-        ip: logMargin(input.ip, 2.0, true),
-        delta_i: logMargin(input.delta_i, 4.5, false),
-        pi1_vn: logMargin(input.pi1_vn, 0.57, true),
-        pd: logMargin(input.pd, 17000.0, false),
-        delta_tan_delta: logMargin(input.delta_tan_delta, 1.0, false),
-        tang_delta_h: logMargin(input.tang_delta_h, 0.05, false),
-        tan_delta: logMargin(input.tan_delta, 4.0, false),
-        h: logMargin(input.h, 7.0, false, MIN_H)
+        ip: logMargin(input.ip, 2.0, true, MIN_POSITIVE, logBase),
+        delta_i: logMargin(input.delta_i, 4.5, false, MIN_POSITIVE, logBase),
+        pi1_vn: logMargin(input.pi1_vn, 0.57, true, MIN_POSITIVE, logBase),
+        pd: logMargin(input.pd, 17000.0, false, MIN_POSITIVE, logBase),
+        delta_tan_delta: logMargin(input.delta_tan_delta, 1.0, false, MIN_POSITIVE, logBase),
+        tang_delta_h: logMargin(input.tang_delta_h, 0.05, false, MIN_POSITIVE, logBase),
+        tan_delta: logMargin(input.tan_delta, 4.0, false, MIN_POSITIVE, logBase),
+        h: logMargin(input.h, 7.0, false, MIN_H, logBase)
       };
     }
 
@@ -865,24 +952,26 @@
     }
 
     function calculateD20(input, raw = false) {
-      const m = margins(input);
+      const m = margins(input, 20);
+      const c = log20Coefficient;
+      const t = log20Threshold;
       let value = 1.912812122382414;
-      value += -3.64695459 * m.pi1_vn;
-      value += -2.91109386 * hinge(0.0, m.h);
-      value += -2.90494819 * hinge(-0.552841969, m.h);
-      value += -1.48543788 * hinge(-0.187673132, m.pi1_vn);
-      value += 1.32150251 * m.ip;
-      value += -1.07687847 * hinge(-0.330993219, m.h);
-      value += 0.67088590 * m.tang_delta_h;
-      value += -0.50338589 * m.pd;
-      value += 0.47363259 * m.delta_tan_delta;
-      value += 0.26759780 * hinge(0.0, m.ip);
-      value += -0.23319941 * hinge(-0.602059991, m.delta_tan_delta);
-      value += 0.19988613 * m.h;
-      value += 0.18593911 * hinge(-0.176091259, m.tan_delta);
-      value += 0.16242290 * hinge(-1.0, m.tang_delta_h);
-      value += 0.07398838 * hinge(0.0, m.tan_delta);
-      value += -0.02969294 * m.delta_i;
+      value += c(-3.64695459) * m.pi1_vn;
+      value += c(-2.91109386) * hinge(t(0.0), m.h);
+      value += c(-2.90494819) * hinge(t(-0.552841969), m.h);
+      value += c(-1.48543788) * hinge(t(-0.187673132), m.pi1_vn);
+      value += c(1.32150251) * m.ip;
+      value += c(-1.07687847) * hinge(t(-0.330993219), m.h);
+      value += c(0.67088590) * m.tang_delta_h;
+      value += c(-0.50338589) * m.pd;
+      value += c(0.47363259) * m.delta_tan_delta;
+      value += c(0.26759780) * hinge(t(0.0), m.ip);
+      value += c(-0.23319941) * hinge(t(-0.602059991), m.delta_tan_delta);
+      value += c(0.19988613) * m.h;
+      value += c(0.18593911) * hinge(t(-0.176091259), m.tan_delta);
+      value += c(0.16242290) * hinge(t(-1.0), m.tang_delta_h);
+      value += c(0.07398838) * hinge(t(0.0), m.tan_delta);
+      value += c(-0.02969294) * m.delta_i;
       return raw ? value : round2(value);
     }
 
@@ -989,7 +1078,7 @@
     }
 
     function linePosition(d10, d20) {
-      return d20 < redLineY(d10) ? "Abaixo da linha" : "Acima da linha";
+      return d10 < redLineY(d20) ? "Abaixo da linha" : "Acima da linha";
     }
 
     function axisBounds(point) {
@@ -1031,10 +1120,10 @@
         const { left, right, top, bottom } = chartArea;
         ctx.save();
         ctx.font = "600 16px system-ui, -apple-system, Segoe UI, sans-serif";
-        drawLabel(ctx, "Limpeza e Secagem", left + 24, top + 34, "rgba(255, 242, 0, .58)", "#7a7800");
+        drawLabel(ctx, "Rejuvenescimento", left + 24, top + 34, "rgba(255, 242, 0, .58)", "#7a7800");
         drawLabel(ctx, "Bom", right - 72, top + 34, "rgba(112, 255, 96, .52)", "#0f8a17");
         drawLabel(ctx, "Crítico", left + 24, bottom - 42, "rgba(255, 86, 86, .50)", "#9f1f1f");
-        drawLabel(ctx, "Rejuvenescimento", right - 190, bottom - 42, "rgba(255, 242, 0, .58)", "#7a7800");
+        drawLabel(ctx, "Limpeza e Secagem", right - 190, bottom - 42, "rgba(255, 242, 0, .58)", "#7a7800");
         ctx.restore();
       }
     };
@@ -1050,7 +1139,7 @@
     }
 
     function createOrUpdateChart(mode, result) {
-      const point = { x: result.d10, y: result.d20 };
+      const point = { x: result.d20, y: result.d10 };
       const bounds = axisBounds(point);
       const redLine = [
         { x: bounds.xMin, y: redLineY(bounds.xMin) },
@@ -1061,7 +1150,7 @@
         datasets: [
           {
             type: "line",
-            label: "Linha fixa: D20 = -D10 - 1",
+            label: "Linha fixa: D10 = -D20 - 1",
             data: redLine,
             borderColor: "#ff1f1f",
             borderWidth: 2,
@@ -1101,9 +1190,9 @@
               label(context) {
                 const raw = context.raw;
                 if (context.dataset.type === "line") {
-                  return "Linha fixa: D20 = -D10 - 1";
+                  return "Linha fixa: D10 = -D20 - 1";
                 }
-                return `D10 ${raw.x.toFixed(2)} | D20 ${raw.y.toFixed(2)}`;
+                return `D20 ${raw.x.toFixed(2)} | D10 ${raw.y.toFixed(2)}`;
               }
             }
           }
@@ -1831,6 +1920,296 @@
       reader.readAsText(file, "utf-8");
     }
 
+    function historyRows() {
+      return Array.isArray(window.daimerHistoricalRows) ? window.daimerHistoricalRows : [];
+    }
+
+    function normalizeHistoryInput(input) {
+      return {
+        ip: parseNumber(input?.ip),
+        delta_i: parseNumber(input?.delta_i),
+        pi1_vn: parseNumber(input?.pi1_vn),
+        pd: parseNumber(input?.pd),
+        delta_tan_delta: parseNumber(input?.delta_tan_delta),
+        tang_delta_h: parseNumber(input?.tang_delta_h),
+        tan_delta: parseNumber(input?.tan_delta),
+        h: parseNumber(input?.h),
+        tempo_operacao_anos: NaN,
+        ajuste_historico_anos: 0
+      };
+    }
+
+    function historyInputKey(input) {
+      return requiredFields.map((field) => formatHistoryKeyNumber(input[field])).join("|");
+    }
+
+    function formatHistoryKeyNumber(value) {
+      return Number.isFinite(value) ? value.toFixed(6) : "nan";
+    }
+
+    function numericSpan(values) {
+      const numericValues = values.filter(Number.isFinite);
+      if (!numericValues.length) {
+        return 0;
+      }
+      return Math.max(...numericValues) - Math.min(...numericValues);
+    }
+
+    function annotateHistoryConflicts(rows) {
+      const groups = new Map();
+      rows.forEach((row) => {
+        const key = historyInputKey(row.input);
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key).push(row);
+      });
+
+      groups.forEach((group) => {
+        if (group.length < 2) {
+          return;
+        }
+        const d10Span = numericSpan(group.map((row) => row.real.d10));
+        const d20Span = numericSpan(group.map((row) => row.real.d20));
+        const geiSpan = numericSpan(group.map((row) => row.real.gei));
+        const hasConflict = d10Span > 0.05 || d20Span > 0.05 || geiSpan > 1;
+        if (!hasConflict) {
+          return;
+        }
+        group.forEach((row) => {
+          row.hasInputConflict = true;
+          row.conflictSize = group.length;
+          row.conflictSpan = { d10: d10Span, d20: d20Span, gei: geiSpan };
+        });
+      });
+      return rows;
+    }
+
+    function buildHistoryComparisons() {
+      const rows = historyRows().map((row, rowIndex) => {
+        const input = normalizeHistoryInput(row.input);
+        if (requiredFields.some((field) => !Number.isFinite(input[field]))) {
+          return null;
+        }
+        const real = {
+          d10: parseNumber(row.real?.d10),
+          d20: parseNumber(row.real?.d20),
+          gei: parseNumber(row.real?.gei)
+        };
+        if (!Number.isFinite(real.d10) || !Number.isFinite(real.d20)) {
+          return null;
+        }
+        const production = calculateProduction(input);
+        const oracle = calculateOracle(input, production);
+        return {
+          index: rowIndex + 1,
+          id: String(row.id || rowIndex + 1),
+          input,
+          real,
+          production,
+          oracle
+        };
+      }).filter(Boolean);
+      return annotateHistoryConflicts(rows);
+    }
+
+    function historyCleanOnly() {
+      return byId("historyCleanOnly")?.checked ?? true;
+    }
+
+    function activeHistoryRows(rows) {
+      return historyCleanOnly() ? rows.filter((row) => !row.hasInputConflict) : rows;
+    }
+
+    function formatHistoryNumber(value, digits = 2) {
+      if (!Number.isFinite(value)) {
+        return "--";
+      }
+      return value.toLocaleString("pt-BR", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function historyRowsForTarget(rows, targetKey) {
+      return rows.filter((row) => Number.isFinite(row.real[targetKey]));
+    }
+
+    function historyMae(rows, targetKey, sourceName) {
+      if (!rows.length) {
+        return NaN;
+      }
+      const totalError = rows.reduce((total, row) => total + Math.abs(row[sourceName][targetKey] - row.real[targetKey]), 0);
+      return totalError / rows.length;
+    }
+
+    function historyConflictRows(rows) {
+      return rows.filter((row) => row.hasInputConflict);
+    }
+
+    function historyOracleDiffCount(rows, targetKey) {
+      return rows.filter((row) => Number.isFinite(row.oracle[targetKey]) && row.oracle[targetKey] !== row.production[targetKey]).length;
+    }
+
+    function renderHistorySummary(allRows, rows) {
+      const totalRows = rows.length;
+      const conflictRows = historyConflictRows(allRows).length;
+      const geiRows = historyRowsForTarget(rows, "gei").length;
+      const baseLabel = historyCleanOnly() ? "base limpa" : "base bruta";
+      byId("historyDatasetStatus").textContent = `${totalRows} registros | ${geiRows} com GEI`;
+      byId("historyCleanNote").textContent = historyCleanOnly()
+        ? `${conflictRows} registros conflitantes ocultos`
+        : `${conflictRows} registros conflitantes incluídos`;
+      byId("historySummary").innerHTML = historyTargets.map((target) => {
+        const targetRows = historyRowsForTarget(rows, target.key);
+        const productionMae = historyMae(targetRows, target.key, "production");
+        const oracleMae = historyMae(targetRows, target.key, "oracle");
+        const oracleDiffCount = historyOracleDiffCount(targetRows, target.key);
+        return metricCard(
+          `${target.title} histórico`,
+          `${targetRows.length} registros (${baseLabel})`,
+          `MAE produção ${formatHistoryNumber(productionMae, target.digits)} | oráculo anchors ${formatHistoryNumber(oracleMae, target.digits)} | difere em ${oracleDiffCount}`
+        );
+      }).join("");
+    }
+
+    function createOrUpdateHistoryChart(target, rows) {
+      const targetRows = historyRowsForTarget(rows, target.key);
+      const labels = targetRows.map((row) => row.id);
+      const productionMae = historyMae(targetRows, target.key, "production");
+      const oracleMae = historyMae(targetRows, target.key, "oracle");
+      const oracleDiffCount = historyOracleDiffCount(targetRows, target.key);
+      byId(target.metricId).textContent = `MAE produção ${formatHistoryNumber(productionMae, target.digits)} | oráculo anchors ${formatHistoryNumber(oracleMae, target.digits)} | difere em ${oracleDiffCount}`;
+
+      const data = {
+        labels,
+        datasets: [
+          {
+            label: `${target.title} real`,
+            data: targetRows.map((row) => row.real[target.key]),
+            borderColor: "#111827",
+            backgroundColor: "#111827",
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.12
+          },
+          {
+            label: `${target.title} produção`,
+            data: targetRows.map((row) => row.production[target.key]),
+            borderColor: "#105f8f",
+            backgroundColor: "#105f8f",
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.12
+          },
+          {
+            label: `${target.title} oráculo anchors`,
+            data: targetRows.map((row) => row.oracle[target.key]),
+            borderColor: "#f97316",
+            backgroundColor: "#f97316",
+            borderWidth: 2,
+            borderDash: [6, 5],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.12
+          }
+        ]
+      };
+
+      const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              boxWidth: 32,
+              color: "#6b7280",
+              font: { size: 13 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title(items) {
+                const row = targetRows[items[0]?.dataIndex ?? 0];
+                return row ? `OS ${row.id}` : "";
+              },
+              label(context) {
+                return `${context.dataset.label}: ${formatHistoryNumber(context.parsed.y, target.digits)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              autoSkip: true,
+              maxTicksLimit: 14,
+              color: "#6b7280"
+            },
+            grid: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: "Ensaios da planilha",
+              color: "#6b7280",
+              font: { size: 14, weight: "600" }
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: target.label,
+              color: "#6b7280",
+              font: { size: 14, weight: "600" }
+            },
+            ticks: {
+              color: "#6b7280"
+            },
+            grid: {
+              color: "rgba(120, 128, 140, .22)"
+            }
+          }
+        }
+      };
+
+      if (!charts[target.chartKey]) {
+        charts[target.chartKey] = new Chart(byId(target.chartId), {
+          type: "line",
+          data,
+          options,
+          plugins: [whiteBackgroundPlugin]
+        });
+      } else {
+        charts[target.chartKey].data = data;
+        charts[target.chartKey].options = options;
+        charts[target.chartKey].update();
+      }
+    }
+
+    function renderHistoryTab() {
+      const allRows = buildHistoryComparisons();
+      const rows = activeHistoryRows(allRows);
+      if (!rows.length) {
+        byId("historyDatasetStatus").textContent = "Sem dados válidos";
+        byId("historySummary").innerHTML = metricCard("Histórico", "0", "Nenhum registro válido foi encontrado.");
+        return;
+      }
+      renderHistorySummary(allRows, rows);
+      historyTargets.forEach((target) => createOrUpdateHistoryChart(target, rows));
+      window.setTimeout(() => {
+        historyTargets.forEach((target) => charts[target.chartKey]?.resize());
+      }, 0);
+    }
+
     byId("daimerForm").addEventListener("submit", (event) => {
       event.preventDefault();
       runCalculation();
@@ -1848,6 +2227,8 @@
     byId("exportCalibrationJson").addEventListener("click", exportCalibrationJson);
     byId("importCalibrationButton").addEventListener("click", () => byId("importCalibrationFile").click());
     byId("importCalibrationFile").addEventListener("change", (event) => importCalibrationJson(event.target.files[0]));
+    byId("historyTab").addEventListener("shown.bs.tab", renderHistoryTab);
+    byId("historyCleanOnly").addEventListener("change", renderHistoryTab);
     byId("calibrationCasesBody").addEventListener("click", (event) => {
       const loadButton = event.target.closest("[data-load-case]");
       const deleteButton = event.target.closest("[data-delete-case]");

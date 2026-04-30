@@ -42,14 +42,14 @@ http://localhost:8000/index.html
 
 ## Grafico
 
-- Eixo horizontal: `D10` / degradacao.
-- Eixo vertical: `D20` / contaminacao.
+- Eixo horizontal: `D20` / contaminacao.
+- Eixo vertical: `D10` / degradacao.
 - O ponto preto e dinamico e muda a cada calculo.
 - A escala do grafico se ajusta quando o ponto sai da faixa padrao.
 - A linha vermelha e fixa e segue a equacao:
 
 ```text
-D20 = -D10 - 1
+D10 = -D20 - 1
 ```
 
 Essa linha cruza os eixos em `-1`, como no grafico de referencia. Apenas o ponto, os eixos e a imagem gerada mudam dinamicamente.

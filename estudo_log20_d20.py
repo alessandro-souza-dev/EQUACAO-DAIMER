@@ -16,11 +16,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from daimer_ml import load_daimer_dataframe, FEATURE_COLUMNS
+from daimer_ml import load_daimer_dataframe, FEATURE_COLUMNS, TARGET_D20
 from equacoes_daimer import calcular_d20
 
-# Coluna D20 no Excel (nome real verificado)
-TARGET_D20_COL = "Grau de Deterioração (D20)"
+# Coluna D20 no Excel: D20 e o grau de contaminacao.
+TARGET_D20_COL = TARGET_D20
 
 # ---------------------------------------------------------------------------
 # Configuracoes
@@ -263,7 +263,7 @@ def main() -> None:
         )
         for _, row in df.iterrows()
     ])
-    m_atual = metrics(y, y_atual, "D20 ATUAL (equacao fixa, log10)")
+    m_atual = metrics(y, y_atual, "D20 ATUAL (equacao fixa, log20 equivalente)")
 
     # -----------------------------------------------------------------------
     # 2. Reajuste por minimos quadrados — espaco log10
@@ -350,8 +350,8 @@ def main() -> None:
         }])
         x10 = build_d20_features(row_df, use_log20=False)
         x20 = build_d20_features(row_df, use_log20=True)
-        pred10 = float(predict_d20(x10, coef10))
-        pred20 = float(predict_d20(x20, coef20))
+        pred10 = float(predict_d20(x10, coef10)[0])
+        pred20 = float(predict_d20(x20, coef20)[0])
         d20_atual = calcular_d20(ip, di, pi, pd_v, dtd, tdh, td, h, arredondar=False)
         ref = case["d20_ref"]
         print(f"  {case['name']}: ref={ref:.2f}  atual={d20_atual:.4f}  reaj_log10={pred10:.4f}  reaj_log20={pred20:.4f}")
