@@ -25,7 +25,7 @@ A varredura dos PDFs em `papers/` nao encontrou coeficientes DAIMER ou uma equac
 
 ## 2. Equacoes propostas
 
-Defina as margens logaritmicas, sempre com log10:
+Defina as margens logaritmicas. `D10` e `GEI` usam `log10`; `D20` e equivalente em `log20`, com coeficientes e thresholds convertidos da escala `log10` para preservar a calibracao:
 
 ```text
 m_ip    = log10(IP / 2,0)

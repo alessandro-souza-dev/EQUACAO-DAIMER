@@ -28,6 +28,16 @@ TARGET_GLOBAL = "Avaliação Global"
 TARGET_GEI = "Grau de Envelhecimento GEI (Anos)"
 TARGET_COLUMNS = [TARGET_D10, TARGET_D20, TARGET_GLOBAL, TARGET_GEI]
 
+COLUMN_ALIASES = {
+    "Î”I": "ΔI",
+    "Î”Tan Î´": "ΔTan δ",
+    "Tang Î´ (h)": "Tang δ (h)",
+    "Tan Î´": "Tan δ",
+    "AvaliaÃ§Ã£o Global": "Avaliação Global",
+    "Grau de Deteriora��o (D10)": "Grau de Deterioração (D10)",
+    "Grau de Contamina��o (D20)": "Grau de Contaminação (D20)",
+}
+
 REFERENCES = {
     "IP": 2.0,
     "ΔI": 4.5,
@@ -81,6 +91,7 @@ def numeric_series(series: pd.Series) -> pd.Series:
 
 def load_daimer_dataframe(path: str | Path = "Dados_Ensaios.xlsx") -> pd.DataFrame:
     dataframe = pd.read_excel(path)
+    dataframe = dataframe.rename(columns=COLUMN_ALIASES)
     for column in FEATURE_COLUMNS + TARGET_COLUMNS:
         if column in dataframe.columns:
             dataframe[column] = numeric_series(dataframe[column])

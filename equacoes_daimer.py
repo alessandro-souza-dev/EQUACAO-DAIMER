@@ -5,6 +5,7 @@ from math import isfinite, log10
 
 MIN_POSITIVE = 1e-6
 MIN_H = 0.01
+LOG20_FACTOR = log10(20)
 
 
 def _as_float(value: float | int | str | None, default: float = 0.0) -> float:
@@ -21,11 +22,27 @@ def _as_float(value: float | int | str | None, default: float = 0.0) -> float:
     return result
 
 
-def _log_margin(value: float, reference: float, higher_is_better: bool, floor: float = MIN_POSITIVE) -> float:
+def _log_margin(
+    value: float,
+    reference: float,
+    higher_is_better: bool,
+    floor: float = MIN_POSITIVE,
+    log_base: float = 10.0,
+) -> float:
     value = max(_as_float(value), floor)
     if higher_is_better:
-        return log10(value / reference)
-    return log10(reference / value)
+        margin = log10(value / reference)
+    else:
+        margin = log10(reference / value)
+    return margin / LOG20_FACTOR if log_base == 20.0 else margin
+
+
+def _log20_threshold(threshold_log10: float) -> float:
+    return threshold_log10 / LOG20_FACTOR
+
+
+def _log20_coefficient(coefficient_log10: float) -> float:
+    return coefficient_log10 * LOG20_FACTOR
 
 
 def _hinge(threshold_margin: float, margin: float) -> float:
@@ -41,16 +58,17 @@ def _margins(
     tang_delta_h: float,
     tan_delta: float,
     h: float | str | None,
+    log_base: float = 10.0,
 ) -> dict[str, float]:
     return {
-        "ip": _log_margin(ip, 2.0, True),
-        "delta_i": _log_margin(delta_i, 4.5, False),
-        "pi1_vn": _log_margin(pi1_vn, 0.57, True),
-        "pd": _log_margin(pd, 17000.0, False),
-        "delta_tan_delta": _log_margin(delta_tan_delta, 1.0, False),
-        "tang_delta_h": _log_margin(tang_delta_h, 0.05, False),
-        "tan_delta": _log_margin(tan_delta, 4.0, False),
-        "h": _log_margin(_as_float(h, 0.0), 7.0, False, MIN_H),
+        "ip": _log_margin(ip, 2.0, True, log_base=log_base),
+        "delta_i": _log_margin(delta_i, 4.5, False, log_base=log_base),
+        "pi1_vn": _log_margin(pi1_vn, 0.57, True, log_base=log_base),
+        "pd": _log_margin(pd, 17000.0, False, log_base=log_base),
+        "delta_tan_delta": _log_margin(delta_tan_delta, 1.0, False, log_base=log_base),
+        "tang_delta_h": _log_margin(tang_delta_h, 0.05, False, log_base=log_base),
+        "tan_delta": _log_margin(tan_delta, 4.0, False, log_base=log_base),
+        "h": _log_margin(_as_float(h, 0.0), 7.0, False, MIN_H, log_base=log_base),
     }
 
 
@@ -95,24 +113,26 @@ def calcular_d20(
     h: float | str | None = 0.0,
     arredondar: bool = True,
 ) -> float:
-    m = _margins(ip, delta_i, pi1_vn, pd, delta_tan_delta, tang_delta_h, tan_delta, h)
+    m = _margins(ip, delta_i, pi1_vn, pd, delta_tan_delta, tang_delta_h, tan_delta, h, log_base=20.0)
+    c = _log20_coefficient
+    t = _log20_threshold
     value = 1.912812122382414
-    value += -3.64695459 * m["pi1_vn"]
-    value += -2.91109386 * _hinge(0.0, m["h"])
-    value += -2.90494819 * _hinge(-0.552841969, m["h"])
-    value += -1.48543788 * _hinge(-0.187673132, m["pi1_vn"])
-    value += 1.32150251 * m["ip"]
-    value += -1.07687847 * _hinge(-0.330993219, m["h"])
-    value += 0.67088590 * m["tang_delta_h"]
-    value += -0.50338589 * m["pd"]
-    value += 0.47363259 * m["delta_tan_delta"]
-    value += 0.26759780 * _hinge(0.0, m["ip"])
-    value += -0.23319941 * _hinge(-0.602059991, m["delta_tan_delta"])
-    value += 0.19988613 * m["h"]
-    value += 0.18593911 * _hinge(-0.176091259, m["tan_delta"])
-    value += 0.16242290 * _hinge(-1.0, m["tang_delta_h"])
-    value += 0.07398838 * _hinge(0.0, m["tan_delta"])
-    value += -0.02969294 * m["delta_i"]
+    value += c(-3.64695459) * m["pi1_vn"]
+    value += c(-2.91109386) * _hinge(t(0.0), m["h"])
+    value += c(-2.90494819) * _hinge(t(-0.552841969), m["h"])
+    value += c(-1.48543788) * _hinge(t(-0.187673132), m["pi1_vn"])
+    value += c(1.32150251) * m["ip"]
+    value += c(-1.07687847) * _hinge(t(-0.330993219), m["h"])
+    value += c(0.67088590) * m["tang_delta_h"]
+    value += c(-0.50338589) * m["pd"]
+    value += c(0.47363259) * m["delta_tan_delta"]
+    value += c(0.26759780) * _hinge(t(0.0), m["ip"])
+    value += c(-0.23319941) * _hinge(t(-0.602059991), m["delta_tan_delta"])
+    value += c(0.19988613) * m["h"]
+    value += c(0.18593911) * _hinge(t(-0.176091259), m["tan_delta"])
+    value += c(0.16242290) * _hinge(t(-1.0), m["tang_delta_h"])
+    value += c(0.07398838) * _hinge(t(0.0), m["tan_delta"])
+    value += c(-0.02969294) * m["delta_i"]
     return round(value, 2) if arredondar else value
 
 
