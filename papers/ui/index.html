@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG dos Papers</title>
+  <style>
+    :root {
+      --paper: #f6efe4;
+      --panel: rgba(255, 250, 242, 0.9);
+      --ink: #1c2524;
+      --muted: #5f6d69;
+      --copper: #b5522d;
+      --forest: #1f5f57;
+      --line: rgba(28, 37, 36, 0.12);
+      --shadow: 0 18px 45px rgba(28, 37, 36, 0.12);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Trebuchet MS", Verdana, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(181, 82, 45, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(31, 95, 87, 0.2), transparent 32%),
+        linear-gradient(180deg, #fbf6ef 0%, #efe2d3 100%);
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 24px auto 40px;
+    }
+
+    .hero {
+      padding: 26px 28px;
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 8px);
+      background: linear-gradient(135deg, rgba(255, 250, 242, 0.96), rgba(255, 245, 232, 0.82));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--copper);
+      font-family: "Courier New", monospace;
+      font-size: 0.84rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, Cambria, serif;
+      font-size: clamp(2.3rem, 5vw, 4.6rem);
+      line-height: 0.92;
+      max-width: 10ch;
+    }
+
+    .hero-copy {
+      max-width: 72ch;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .metric {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(28, 37, 36, 0.08);
+    }
+
+    .metric-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+    }
+
+    .metric strong {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .panel-body {
+      padding: 22px;
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-family: Georgia, Cambria, serif;
+      font-size: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    textarea,
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid rgba(28, 37, 36, 0.16);
+      border-radius: 16px;
+      padding: 14px 16px;
+      font: inherit;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.88);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    textarea {
+      min-height: 170px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    textarea:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: rgba(181, 82, 45, 0.7);
+      transform: translateY(-1px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(31, 95, 87, 0.08);
+      border: 1px solid rgba(31, 95, 87, 0.12);
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--forest);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(28, 37, 36, 0.14);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .primary {
+      color: white;
+      background: linear-gradient(135deg, var(--copper), #8f3f22);
+    }
+
+    .secondary {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(28, 37, 36, 0.12);
+    }
+
+    .examples {
+      margin-top: 18px;
+    }
+
+    .examples p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(28, 37, 36, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      font-size: 0.9rem;
+    }
+
+    .response-card {
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(28, 37, 36, 0.08);
+      margin-bottom: 14px;
+    }
+
+    .response-card p,
+    .response-card li {
+      margin: 0;
+      line-height: 1.65;
+    }
+
+    .response-card + .response-card {
+      margin-top: 14px;
+    }
+
+    .response-title {
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .citation-list,
+    .source-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .source-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(252, 247, 239, 0.9));
+      border: 1px solid rgba(28, 37, 36, 0.1);
+    }
+
+    .source-meta {
+      margin-bottom: 10px;
+      color: var(--forest);
+      font-size: 0.84rem;
+      font-family: "Courier New", monospace;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .error {
+      color: #8f2432;
+      background: rgba(143, 36, 50, 0.08);
+      border-color: rgba(143, 36, 50, 0.16);
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+      .status-strip,
+      .layout,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .shell {
+        width: min(100% - 20px, 1180px);
+        margin-top: 12px;
+      }
+
+      .hero,
+      .panel-body {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">Papers / RAG local / interface web</p>
+      <h1>Faça perguntas direto aos papers.</h1>
+      <p class="hero-copy">
+        Esta interface usa o RAG local da pasta <strong>papers</strong>. Os PDFs colocados em <strong>papers/pdfs</strong> sao priorizados,
+        e os PDFs antigos que ainda estiverem na raiz continuam sendo lidos para manter compatibilidade com o bloqueio de permissao do OneDrive.
+      </p>
+      <div class="status-strip">
+        <div class="metric">
+          <span class="metric-label">PDFs em papers/pdfs</span>
+          <strong id="pdfsDirCount">-</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">PDFs na raiz</span>
+          <strong id="rootPdfCount">-</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Modo padrao</span>
+          <strong id="modeLabel">-</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Servidor</span>
+          <strong id="serverLabel">online</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <div class="panel-body">
+          <h2>Pergunta</h2>
+          <label for="question">Escreva a sua pergunta</label>
+          <textarea id="question" placeholder="Ex.: quais papers relacionam descarga parcial com degradacao de motores de alta tensao?"></textarea>
+
+          <div class="grid">
+            <div>
+              <label for="topK">Top-K de fontes</label>
+              <input id="topK" type="number" min="1" max="10" value="5">
+            </div>
+            <div>
+              <label for="maxSentences">Frases na resposta</label>
+              <input id="maxSentences" type="number" min="1" max="10" value="5">
+            </div>
+          </div>
+
+          <label class="toggle" for="liveMode">
+            <input id="liveMode" type="checkbox" checked>
+            <span>Usar modo live em memoria</span>
+          </label>
+
+          <div class="actions">
+            <button class="primary" id="askButton">Consultar RAG</button>
+            <button class="secondary" id="clearButton" type="button">Limpar</button>
+          </div>
+
+          <section class="examples">
+            <p>Perguntas prontas:</p>
+            <div class="chips">
+              <button class="chip" type="button" data-question="quais papers relacionam descarga parcial com degradacao de motores de alta tensao?">Descarga parcial e motores</button>
+              <button class="chip" type="button" data-question="como os papers tratam contaminacao, umidade e carga espacial?">Contaminacao, umidade e carga espacial</button>
+              <button class="chip" type="button" data-question="qual o papel de tan delta nos papers?">Tan delta</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <div class="panel-body">
+          <h2>Resposta</h2>
+          <div class="response-card" id="summaryCard">
+            <p class="empty">A resposta sintetizada vai aparecer aqui.</p>
+          </div>
+
+          <div class="response-card">
+            <p class="response-title">Citacoes principais</p>
+            <div class="citation-list" id="citations"></div>
+          </div>
+
+          <div class="response-card">
+            <p class="response-title">Fontes recuperadas</p>
+            <div class="source-list" id="sources"></div>
+          </div>
+
+          <div class="response-card">
+            <p class="response-title">Estatisticas do indice</p>
+            <div id="manifestStats" class="empty">As estatisticas aparecem depois da primeira consulta.</div>
+          </div>
+
+          <p class="footer-note" id="footerNote">
+            O modo live e o mais seguro neste workspace. A primeira consulta pode demorar mais porque o indice e montado em memoria; as proximas tendem a responder mais rapido no mesmo servidor.
+          </p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const questionEl = document.getElementById("question");
+    const topKEl = document.getElementById("topK");
+    const maxSentencesEl = document.getElementById("maxSentences");
+    const liveModeEl = document.getElementById("liveMode");
+    const askButtonEl = document.getElementById("askButton");
+    const clearButtonEl = document.getElementById("clearButton");
+    const summaryCardEl = document.getElementById("summaryCard");
+    const citationsEl = document.getElementById("citations");
+    const sourcesEl = document.getElementById("sources");
+    const manifestStatsEl = document.getElementById("manifestStats");
+    const pdfsDirCountEl = document.getElementById("pdfsDirCount");
+    const rootPdfCountEl = document.getElementById("rootPdfCount");
+    const modeLabelEl = document.getElementById("modeLabel");
+    const serverLabelEl = document.getElementById("serverLabel");
+    const footerNoteEl = document.getElementById("footerNote");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function setLoading(isLoading) {
+      askButtonEl.disabled = isLoading;
+      askButtonEl.textContent = isLoading ? "Consultando..." : "Consultar RAG";
+      serverLabelEl.textContent = isLoading ? "processando" : "online";
+    }
+
+    function renderEmpty(element, message) {
+      element.innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
+    }
+
+    function renderSummary(payload) {
+      if (!payload.answer) {
+        renderEmpty(summaryCardEl, "Nenhuma resposta sintetizada foi gerada para esta pergunta.");
+        return;
+      }
+      summaryCardEl.innerHTML = `<p>${escapeHtml(payload.answer)}</p>`;
+    }
+
+    function renderCitations(payload) {
+      if (!payload.answer_sentences || payload.answer_sentences.length === 0) {
+        renderEmpty(citationsEl, "Nenhuma citacao selecionada.");
+        return;
+      }
+
+      citationsEl.innerHTML = payload.answer_sentences.map((item) => `
+        <article class="source-item">
+          <div class="source-meta">${escapeHtml(item.file_name)} | pagina ${escapeHtml(item.page)} | score ${Number(item.score).toFixed(4)}</div>
+          <p>${escapeHtml(item.text)}</p>
+        </article>
+      `).join("");
+    }
+
+    function renderSources(payload) {
+      if (!payload.results || payload.results.length === 0) {
+        renderEmpty(sourcesEl, "Nenhum trecho recuperado.");
+        return;
+      }
+
+      sourcesEl.innerHTML = payload.results.map((item) => `
+        <article class="source-item">
+          <div class="source-meta">${escapeHtml(item.file_name)} | pagina ${escapeHtml(item.page)} | score ${Number(item.score).toFixed(4)}</div>
+          <p>${escapeHtml(item.text.slice(0, 420))}${item.text.length > 420 ? "..." : ""}</p>
+        </article>
+      `).join("");
+    }
+
+    function renderManifest(payload) {
+      const manifest = payload.manifest || {};
+      const pdfLocations = payload.pdf_locations || {};
+      manifestStatsEl.innerHTML = `
+        <strong>${escapeHtml(manifest.pdf_count ?? "-")}</strong> PDFs lidos, 
+        <strong>${escapeHtml(manifest.pages_with_text ?? "-")}</strong> paginas com texto e 
+        <strong>${escapeHtml(manifest.chunk_count ?? "-")}</strong> chunks. 
+        Preferencia por <strong>${escapeHtml(pdfLocations.preferred_directory ?? "pdfs")}</strong>, 
+        com <strong>${escapeHtml(pdfLocations.pdfs_dir_count ?? "0")}</strong> PDFs organizados e 
+        <strong>${escapeHtml(pdfLocations.root_pdf_count ?? "0")}</strong> PDFs ainda na raiz.
+      `;
+    }
+
+    function renderError(message) {
+      summaryCardEl.innerHTML = `<div class="response-card error"><p>${escapeHtml(message)}</p></div>`;
+      renderEmpty(citationsEl, "Corrija o problema e tente novamente.");
+      renderEmpty(sourcesEl, "Sem fontes por enquanto.");
+      manifestStatsEl.innerHTML = `<span class="empty">Nenhuma estatistica carregada.</span>`;
+    }
+
+    async function loadConfig() {
+      try {
+        const response = await fetch("/api/config");
+        const payload = await response.json();
+        topKEl.value = payload.defaults.top_k;
+        maxSentencesEl.value = payload.defaults.max_sentences;
+        liveModeEl.checked = payload.default_live;
+        pdfsDirCountEl.textContent = payload.pdf_locations.pdfs_dir_count;
+        rootPdfCountEl.textContent = payload.pdf_locations.root_pdf_count;
+        modeLabelEl.textContent = payload.default_live ? "live" : "persistido";
+
+        if (payload.pdf_locations.root_pdf_count > 0) {
+          footerNoteEl.textContent = "Ainda existem PDFs na raiz de papers por causa de bloqueios de permissao do OneDrive. O RAG continua lendo esses arquivos automaticamente. A primeira consulta em modo live pode demorar mais porque monta o indice em memoria.";
+        }
+      } catch (error) {
+        serverLabelEl.textContent = "erro";
+        renderError("Nao foi possivel carregar a configuracao inicial da interface.");
+      }
+    }
+
+    async function askRag() {
+      const question = questionEl.value.trim();
+      if (!question) {
+        renderError("Escreva uma pergunta antes de consultar o RAG.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await fetch("/api/ask", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            question,
+            top_k: Number(topKEl.value || 5),
+            max_sentences: Number(maxSentencesEl.value || 5),
+            live: liveModeEl.checked
+          })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Falha ao consultar o RAG.");
+        }
+
+        renderSummary(payload);
+        renderCitations(payload);
+        renderSources(payload);
+        renderManifest(payload);
+        modeLabelEl.textContent = payload.mode;
+      } catch (error) {
+        renderError(error.message || "Falha ao consultar o RAG.");
+        serverLabelEl.textContent = "erro";
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    askButtonEl.addEventListener("click", askRag);
+    clearButtonEl.addEventListener("click", () => {
+      questionEl.value = "";
+      renderEmpty(summaryCardEl, "A resposta sintetizada vai aparecer aqui.");
+      renderEmpty(citationsEl, "Nenhuma citacao selecionada.");
+      renderEmpty(sourcesEl, "Nenhum trecho recuperado.");
+      manifestStatsEl.innerHTML = `<span class="empty">As estatisticas aparecem depois da primeira consulta.</span>`;
+    });
+
+    questionEl.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        askRag();
+      }
+    });
+
+    document.querySelectorAll("[data-question]").forEach((button) => {
+      button.addEventListener("click", () => {
+        questionEl.value = button.dataset.question;
+        questionEl.focus();
+      });
+    });
+
+    loadConfig();
+  </script>
+</body>
+</html>
