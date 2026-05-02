@@ -6,15 +6,21 @@ Hipotese: o DAIMER pode ter projetado D20 com log base 20 (escala de contaminaca
 e comparamos MAE / RMSE / R2 no conjunto de dados real.
 
 Como rodar:
-    python estudo_log20_d20.py
+    python estudo/estudo_log20_d20.py
 """
 from __future__ import annotations
 
 from math import log10
 from pathlib import Path
+import sys
 
 import numpy as np
 import pandas as pd
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from daimer_ml import load_daimer_dataframe, FEATURE_COLUMNS, TARGET_D20
 from equacoes_daimer import calcular_d20
@@ -25,8 +31,10 @@ TARGET_D20_COL = TARGET_D20
 # ---------------------------------------------------------------------------
 # Configuracoes
 # ---------------------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = ROOT_DIR if SCRIPT_DIR.name == "estudo" else SCRIPT_DIR
 DATA_FILE = BASE_DIR / "scraping" / "Dados_Ensaios.xlsx"
+if not DATA_FILE.exists():
+    DATA_FILE = BASE_DIR / "Dados_Ensaios.xlsx"
 
 LOG20_FACTOR = log10(20)  # ≈ 1.30103  — divisor para converter log10 em log20
 

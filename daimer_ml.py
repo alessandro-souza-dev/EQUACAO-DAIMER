@@ -64,8 +64,22 @@ THRESHOLDS = {
 
 MIN_POSITIVE = 1e-6
 MIN_H = 0.01
+WORKSPACE_DIR = Path(__file__).resolve().parent
 DEFAULT_BUNDLE_PATH = Path.home() / "daimer_modelos_ml" / "daimer_ml_bundle.joblib"
 ANCHOR_TOLERANCE = 1e-9
+
+
+def resolve_workspace_file(*candidates: Path) -> Path:
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+DEFAULT_DATA_FILE = resolve_workspace_file(
+    WORKSPACE_DIR / "scraping" / "Dados_Ensaios.xlsx",
+    WORKSPACE_DIR / "Dados_Ensaios.xlsx",
+)
 
 
 def to_float(value: Any, default: float = np.nan) -> float:
@@ -89,7 +103,7 @@ def numeric_series(series: pd.Series) -> pd.Series:
     return pd.to_numeric(text, errors="coerce")
 
 
-def load_daimer_dataframe(path: str | Path = "Dados_Ensaios.xlsx") -> pd.DataFrame:
+def load_daimer_dataframe(path: str | Path = DEFAULT_DATA_FILE) -> pd.DataFrame:
     dataframe = pd.read_excel(path)
     dataframe = dataframe.rename(columns=COLUMN_ALIASES)
     for column in FEATURE_COLUMNS + TARGET_COLUMNS:
