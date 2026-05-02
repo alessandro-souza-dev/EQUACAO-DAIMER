@@ -8,8 +8,8 @@ Este modelo foi criado para funcionar como um oraculo estatistico da planilha: a
 
 Arquivos criados:
 
-- `daimer_ml.py`: engenharia de atributos, carregamento do bundle e funcao `calcular_ml(...)`.
-- `treinar_modelo_ml_daimer.py`: treino, validacao cruzada, selecao de modelos e salvamento dos artefatos.
+- `../daimer_ml.py`: engenharia de atributos, carregamento do bundle e funcao `calcular_ml(...)`.
+- `../estudo/treinar_modelo_ml_daimer.py`: treino, validacao cruzada, selecao de modelos e salvamento dos artefatos.
 - `relatorio_pesos_modelo_ml.md`: pesos aprendidos por input para D10, D20 e GEI.
 
 Artefatos treinados salvos fora do OneDrive:
@@ -34,7 +34,7 @@ O transformador `DaimerFeatureTransformer` gera:
 
 Isso permite que modelos nao lineares aprendam tanto regioes suaves quanto quebras estruturais nos limites tecnicos.
 
-A varredura final dos PDFs em `papers/` reforcou essa escolha de arquitetura: os trabalhos revisados tratam diagnostico de isolamento como composicao de fenomenos de descarga parcial, resistencia/polarizacao, perdas/relaxacao dieletrica, carga espacial, contaminacao/umidade e historico operacional. O resumo esta em `relatorio_papers.md`.
+A varredura final dos PDFs em `../papers/` reforcou essa escolha de arquitetura: os trabalhos revisados tratam diagnostico de isolamento como composicao de fenomenos de descarga parcial, resistencia/polarizacao, perdas/relaxacao dieletrica, carga espacial, contaminacao/umidade e historico operacional. O resumo esta em `relatorio_papers.md`.
 
 ## Normalizacao das unidades
 

@@ -2,13 +2,13 @@
 
 ## Arquivos
 
-- [index.html](index.html): tela HTML5 com Bootstrap, inputs, calculo, grafico e calibracao supervisionada.
-- [equacoes_daimer.py](equacoes_daimer.py): versao Python das equacoes interpretaveis.
-- [daimer_ml.py](daimer_ml.py): versao Python do modelo ML treinado.
+- [../web/index.html](../web/index.html): tela HTML5 com Bootstrap, inputs, calculo, grafico e calibracao supervisionada.
+- [../equacoes_daimer.py](../equacoes_daimer.py): versao Python das equacoes interpretaveis.
+- [../daimer_ml.py](../daimer_ml.py): versao Python do modelo ML treinado.
 
 ## Rodar direto no navegador
 
-1. Abra [index.html](index.html) no navegador.
+1. Abra [../web/index.html](../web/index.html) no navegador.
 2. Na aba `Calculadora DAIMER`, preencha os 8 inputs principais do ensaio:
    - `IP`
    - `ΔI`
@@ -37,7 +37,7 @@ python -m http.server 8000
 Depois acesse:
 
 ```text
-http://localhost:8000/index.html
+http://localhost:8000/web/index.html
 ```
 
 ## Grafico
@@ -98,4 +98,4 @@ GEI = 10
 
 ## Observacao
 
-A pagina HTML roda localmente no navegador usando as equacoes interpretaveis em JavaScript, anchors para os dois casos reais conhecidos e calibracao supervisionada armazenada em `localStorage`. O modelo ML treinado permanece disponivel em Python para uso com [daimer_ml.py](daimer_ml.py).
+A pagina HTML roda localmente no navegador usando as equacoes interpretaveis em JavaScript, anchors para os dois casos reais conhecidos e calibracao supervisionada armazenada em `localStorage`. O modelo ML treinado permanece disponivel em Python para uso com [../daimer_ml.py](../daimer_ml.py).

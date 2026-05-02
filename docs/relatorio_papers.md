@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Esta varredura verificou se os PDFs em `papers/` poderiam alterar ou reforcar a reconstrucao DAIMER antes do fechamento do projeto.
+Esta varredura verificou se os PDFs em `../papers/` poderiam alterar ou reforcar a reconstrucao DAIMER antes do fechamento do projeto.
 
 Conclusao direta: os papers nao trazem a equacao DAIMER nem coeficientes/thresholds equivalentes aos usados na planilha. Eles agregam como suporte tecnico externo para a arquitetura adotada: diagnostico por multiplos sinais, normalizacao por referencia, termos nao lineares e necessidade de calibracao supervisionada quando houver casos reais.
 
@@ -51,7 +51,7 @@ Agrega documentacao e justificativa fisica, mas nao altera a melhor equacao atua
 
 Portanto, a versao final permanece:
 
-- equacoes interpretaveis em `equacoes_daimer.py`;
+- equacoes interpretaveis em `../equacoes_daimer.py`;
 - explicacao estrutural em `relatorio_equacoes_daimer.md`;
 - modelo ML e pesos em `relatorio_modelo_ml.md` e `relatorio_pesos_modelo_ml.md`;
 - calibracao supervisionada na aba HTML para aprender com novos matches reais.

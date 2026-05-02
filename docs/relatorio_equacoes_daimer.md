@@ -21,7 +21,7 @@
 
 ### Apoio bibliografico final
 
-A varredura dos PDFs em `papers/` nao encontrou coeficientes DAIMER ou uma equacao proprietaria equivalente. Ela reforcou, porem, que a estrutura adotada e tecnicamente plausivel: diagnostico por multiplas familias de fenomenos, incluindo descarga parcial, resistencia/polarizacao, perdas/relaxacao dieletrica, carga espacial, contaminacao/umidade e historico operacional. O resumo da varredura esta em `relatorio_papers.md`.
+A varredura dos PDFs em `../papers/` nao encontrou coeficientes DAIMER ou uma equacao proprietaria equivalente. Ela reforcou, porem, que a estrutura adotada e tecnicamente plausivel: diagnostico por multiplas familias de fenomenos, incluindo descarga parcial, resistencia/polarizacao, perdas/relaxacao dieletrica, carga espacial, contaminacao/umidade e historico operacional. O resumo da varredura esta em `relatorio_papers.md`.
 
 ## 2. Equacoes propostas
 
@@ -164,7 +164,7 @@ Casos reais externos:
 
 ## 5. Codigo
 
-As funcoes puras estao em `equacoes_daimer.py`:
+As funcoes puras estao em `../equacoes_daimer.py`:
 
 - `calcular_d10(...)`
 - `calcular_d20(...)`

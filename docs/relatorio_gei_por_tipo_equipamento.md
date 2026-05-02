@@ -6,7 +6,7 @@ Usar a coluna `Tipo de Equipamento` em `scraping/Dados_Ensaios.xlsx`, separar Mo
 
 ## Cruzamento
 
-- Linhas com GEI e inputs validos em `Dados_Ensaios.xlsx`: 596.
+- Linhas com GEI e inputs validos em `scraping/Dados_Ensaios.xlsx`: 596.
 - Linhas com GEI, inputs validos e tipo Motor/Gerador: 498.
 - Linhas fora da analise por falta de tipo Motor/Gerador: 98.
 - Linhas com `Tipo de Equipamento` informado: 498.

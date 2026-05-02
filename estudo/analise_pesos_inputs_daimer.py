@@ -1,17 +1,27 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import numpy as np
 import pandas as pd
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from daimer_ml import FEATURE_COLUMNS, TARGET_D10, TARGET_D20, TARGET_GEI, load_daimer_dataframe
 from equacoes_daimer import LOG20_FACTOR, MIN_H, MIN_POSITIVE, calcular_d10, calcular_d20, calcular_gei
 
 
-BASE_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+BASE_DIR = ROOT_DIR if SCRIPT_DIR.name == "estudo" else SCRIPT_DIR
 DATA_FILE = BASE_DIR / "scraping" / "Dados_Ensaios.xlsx"
-REPORT_FILE = BASE_DIR / "relatorio_analise_pesos_inputs.md"
+if not DATA_FILE.exists():
+    DATA_FILE = BASE_DIR / "Dados_Ensaios.xlsx"
+REPORT_FILE = BASE_DIR / "docs" / "relatorio_analise_pesos_inputs.md"
+if not REPORT_FILE.parent.exists():
+    REPORT_FILE = BASE_DIR / "relatorio_analise_pesos_inputs.md"
 
 REFERENCES = {
     "IP": 2.0,

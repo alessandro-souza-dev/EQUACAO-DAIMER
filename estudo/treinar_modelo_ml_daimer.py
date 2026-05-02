@@ -4,6 +4,7 @@ import json
 import os
 import warnings
 from pathlib import Path
+import sys
 from typing import Any
 
 detected_cpu_count = os.cpu_count() or 1
@@ -28,6 +29,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from daimer_ml import (
     DaimerFeatureTransformer,
     FEATURE_COLUMNS,
@@ -41,12 +47,16 @@ from daimer_ml import (
 )
 
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = ROOT_DIR if SCRIPT_DIR.name == "estudo" else SCRIPT_DIR
 DATA_FILE = BASE_DIR / "scraping" / "Dados_Ensaios.xlsx"
+if not DATA_FILE.exists():
+    DATA_FILE = BASE_DIR / "Dados_Ensaios.xlsx"
 OUTPUT_DIR = Path.home() / "daimer_modelos_ml"
 BUNDLE_FILE = OUTPUT_DIR / "daimer_ml_bundle.joblib"
 METRICS_FILE = OUTPUT_DIR / "metricas_ml.json"
-WEIGHTS_REPORT_FILE = BASE_DIR / "relatorio_pesos_modelo_ml.md"
+WEIGHTS_REPORT_FILE = BASE_DIR / "docs" / "relatorio_pesos_modelo_ml.md"
+if not WEIGHTS_REPORT_FILE.parent.exists():
+    WEIGHTS_REPORT_FILE = BASE_DIR / "relatorio_pesos_modelo_ml.md"
 
 
 ANCHOR_CASES = [

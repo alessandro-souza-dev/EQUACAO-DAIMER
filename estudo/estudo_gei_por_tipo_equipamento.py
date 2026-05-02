@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import numpy as np
 import pandas as pd
@@ -8,14 +9,25 @@ from sklearn.linear_model import RidgeCV
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error
 from sklearn.model_selection import KFold, cross_val_predict
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from daimer_ml import FEATURE_COLUMNS, TARGET_GEI, load_daimer_dataframe
 from equacoes_daimer import MIN_H, _log_margin, calcular_gei
 
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = ROOT_DIR if SCRIPT_DIR.name == "estudo" else SCRIPT_DIR
 ENSAIOS_FILE = BASE_DIR / "scraping" / "Dados_Ensaios.xlsx"
+if not ENSAIOS_FILE.exists():
+    ENSAIOS_FILE = BASE_DIR / "Dados_Ensaios.xlsx"
 DAIMER_FILE = BASE_DIR / "scraping" / "Dados_Daimer.xlsx"
-REPORT_FILE = BASE_DIR / "relatorio_gei_por_tipo_equipamento.md"
+if not DAIMER_FILE.exists():
+    DAIMER_FILE = BASE_DIR / "Dados_Daimer.xlsx"
+REPORT_FILE = BASE_DIR / "docs" / "relatorio_gei_por_tipo_equipamento.md"
+if not REPORT_FILE.parent.exists():
+    REPORT_FILE = BASE_DIR / "relatorio_gei_por_tipo_equipamento.md"
 
 TYPE_COLUMN = "Tipo de Equipamento"
 TYPE_NORMALIZED = "Tipo normalizado"
@@ -320,7 +332,7 @@ def write_report(
         "",
         "## Cruzamento",
         "",
-        f"- Linhas com GEI e inputs validos em `Dados_Ensaios.xlsx`: {total_gei_rows}.",
+        f"- Linhas com GEI e inputs validos em `scraping/Dados_Ensaios.xlsx`: {total_gei_rows}.",
         f"- Linhas com GEI, inputs validos e tipo Motor/Gerador: {len(valid)}.",
         f"- Linhas fora da analise por falta de tipo Motor/Gerador: {excluded_without_motor_generator_type}.",
         f"- Linhas com `Tipo de Equipamento` informado: {matched_rows}.",

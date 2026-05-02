@@ -23,6 +23,7 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import matplotlib.pyplot as plt
 
 import os
+from pathlib import Path
 
 from typing import Any, cast
 
@@ -39,6 +40,9 @@ from dotenv import load_dotenv
 # Carregar o .env do mesmo diretÃ³rio que o script
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRAP_DIR = Path(SCRIPT_DIR)
+DAIMER_WORKBOOK = SCRAP_DIR / 'Dados_Daimer.xlsx'
+ENSAIOS_WORKBOOK = SCRAP_DIR / 'Dados_Ensaios.xlsx'
 
 env_path = os.path.join(SCRIPT_DIR, '.env')
 
@@ -320,11 +324,11 @@ _aliases_colunas_ensaios = {
 
 os_processadas_execucao = set()
 
-if os.path.exists("Dados_Daimer.xlsx"):
+if DAIMER_WORKBOOK.exists():
 
     try:
 
-        _df_existente = pd.read_excel("Dados_Daimer.xlsx")
+        _df_existente = pd.read_excel(DAIMER_WORKBOOK)
 
         dados = _df_existente.values.tolist()
 
@@ -334,11 +338,11 @@ if os.path.exists("Dados_Daimer.xlsx"):
 
         print(f"[resume] NÃ£o foi possÃ­vel carregar Dados_Daimer.xlsx: {_e}")
 
-if os.path.exists("Dados_Ensaios.xlsx"):
+if ENSAIOS_WORKBOOK.exists():
 
     try:
 
-        _df_ens_existente = pd.read_excel("Dados_Ensaios.xlsx")
+        _df_ens_existente = pd.read_excel(ENSAIOS_WORKBOOK)
 
         _df_ens_existente = _df_ens_existente.rename(columns=_aliases_colunas_ensaios)
 
@@ -552,7 +556,7 @@ def salvar_excels_incrementais(dados, dados_ensaios):
 
         })
 
-        df_inc.to_excel("Dados_Daimer.xlsx", index=False)
+        df_inc.to_excel(DAIMER_WORKBOOK, index=False)
 
     colunas_ensaios = [
 
@@ -574,7 +578,7 @@ def salvar_excels_incrementais(dados, dados_ensaios):
 
         df_ens_inc['NR_OS'] = df_ens_inc['NR_OS'].astype(str).str.lstrip('0')
 
-        df_ens_inc.to_excel("Dados_Ensaios.xlsx", index=False)
+        df_ens_inc.to_excel(ENSAIOS_WORKBOOK, index=False)
 
     print("  [save] Ficheiros Excel guardados.")
 
@@ -1316,7 +1320,7 @@ df['Serviço de Campo'] = df['Serviço de Campo'].replace({
 
 # Salvar o arquivo Excel
 
-df.to_excel("Dados_Daimer.xlsx", index=False)
+df.to_excel(DAIMER_WORKBOOK, index=False)
 
 
 
@@ -1340,7 +1344,7 @@ df_ensaios = pd.DataFrame(dados_ensaios, columns=colunas_ensaios)
 
 df_ensaios['NR_OS'] = df_ensaios['NR_OS'].astype(str).str.lstrip('0')
 
-df_ensaios.to_excel("Dados_Ensaios.xlsx", index=False)
+df_ensaios.to_excel(ENSAIOS_WORKBOOK, index=False)
 
 
 
