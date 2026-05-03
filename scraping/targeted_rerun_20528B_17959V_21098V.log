@@ -1,0 +1,120 @@
+[env] .env carregado: c:\Git_Repo\equacao daimer\scraping\.env
+[env] credenciais obtidas exclusivamente do arquivo .env.
+[env] usuario selecionado: al***@data.com.br
+[targeted] OS selecionadas manualmente: ['20528B', '17959V', '21098V']
+[resume] Dados_Daimer.xlsx carregado: 368 registos existentes.
+[resume] Dados_Ensaios.xlsx carregado: 351 registos existentes.
+  [retry] Erro ao raspar 20528B (tentativa 1/3): Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[1]/div[3]/small"}
+  (Session info: chrome=147.0.7727.138); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff77b73a8e5+14e45]
+	chromedriver!GetHandleVerifier [0x7ff77b73a950+14eb0]
+	chromedriver!(No symbol) [0x7ff77b4ad6ed]
+	chromedriver!(No symbol) [0x7ff77b506cfe]
+	chromedriver!(No symbol) [0x7ff77b50700c]
+	chromedriver!(No symbol) [0x7ff77b557cb7]
+	chromedriver!(No symbol) [0x7ff77b55483b]
+	chromedriver!(No symbol) [0x7ff77b4f90e8]
+	chromedriver!(No symbol) [0x7ff77b4f9fc3]
+	chromedriver!GetHandleVerifier [0x7ff77ba50149+32a6a9]
+	chromedriver!GetHandleVerifier [0x7ff77ba4a715+324c75]
+	chromedriver!GetHandleVerifier [0x7ff77ba6c012+346572]
+	chromedriver!GetHandleVerifier [0x7ff77b757cb5+32215]
+	chromedriver!GetHandleVerifier [0x7ff77b76087c+3addc]
+	chromedriver!GetHandleVerifier [0x7ff77b7440e4+1e644]
+	chromedriver!GetHandleVerifier [0x7ff77b744296+1e7f6]
+	chromedriver!GetHandleVerifier [0x7ff77b728737+2c97]
+	KERNEL32!BaseThreadInitThunk [0x7ffc2c5de957+17]
+	ntdll!RtlUserThreadStart [0x7ffc2cee427c+2c]
+
+[browser] Falha ao abrir https://daimer.data.com.br/login em retry 1 de 20528B (tentativa 1/5): TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff77b73a8e5+14e45]
+	chromedriver!GetHandleVerifier [0x7ff77b73a950+14eb0]
+	chromedriver!(No symbol) [0x7ff77b4ad6ed]
+	chromedriver!(No symbol) [0x7ff77b506cfe]
+	chromedriver!(No symbol) [0x7ff77b50700c]
+	chromedriver!(No symbol) [0x7ff77b557cb7]
+	chromedriver!(No symbol) [0x7ff77b55483b]
+	chromedriver!(No symbol) [0x7ff77b4f90e8]
+	chromedriver!(No symbol) [0x7ff77b4f9fc3]
+	chromedriver!GetHandleVerifier [0x7ff77ba50149+32a6a9]
+	chromedriver!GetHandleVerifier [0x7ff77ba4a715+324c75]
+	chromedriver!GetHandleVerifier [0x7ff77ba6c012+346572]
+	chromedriver!GetHandleVerifier [0x7ff77b757cb5+32215]
+	chromedriver!GetHandleVerifier [0x7ff77b76087c+3addc]
+	chromedriver!GetHandleVerifier [0x7ff77b7440e4+1e644]
+	chromedriver!GetHandleVerifier [0x7ff77b744296+1e7f6]
+	chromedriver!GetHandleVerifier [0x7ff77b728737+2c97]
+	KERNEL32!BaseThreadInitThunk [0x7ffc2c5de957+17]
+	ntdll!RtlUserThreadStart [0x7ffc2cee427c+2c]
+
+[browser] A aguardar 10s antes de nova tentativa...
+  [retry] Sessao recuperada com credenciais do .env. A repetir 20528B...
+NR_OS: 20528B
+Criado: 08/09/25
+Preenchido: 11/09/25
+Submetido: 11/09/25
+Processado: 11/09/25
+Revisado: 11/09/25
+Disponibilizado: 13/09/25
+Aprovado: 15/09/25
+Cliente: TERNIUM BRASIL LTDA (1C01242 - 1910)
+Planta: SANTA CRUZ/RJ
+Setor: SINTERIZAÇÃO
+Tag da Máquina: E6-538 (171420 04 08)
+Tipo de Equipamento: Motor de Indução Assíncrono de Rotor em Gaiola
+Tipo de Diagnóstico: Comum
+Responsáveis: Supervisor de Serviço de Campo
+['MEDIDOR DE PERDAS - MIDAS', '182941', '2', '02/02/27', '07145', 'RESSONADOR', '-', '2', '04/04/30', '3895', 'MEDIDOR DE DESCARGAS PARCIAIS', '183181', '2', '02/02/27', '3896', 'MEGOHMETRO', '-', '2', '', '-', 'MICROHMIMETRO', 'UM8154I', '2', '10/02/26', '10305', 'CALIBRADOR PD', '20080504', '2', '26/02/27', '07957', 'TERMOHIGROMETRO', 'TH027', '2', '01/07/26', '01180', 'MULTIMETRO', '012685', '2', '29/07/26', '012685', 'CAPACITOR', '183259', '2', '25/02/27', '3897', 'NOTEBOOK', '-', '2', '', '7145', 'MEGOHMETRO', '-', '2', '22/10/24', '4271', 'ALICATE AMPERÍMETRO', 'AL009', '2', '26/02/27', '011822']
+O Kit Utilizado Ã©: 2
+--------------------------------------------------
+  [abas] Abas encontradas para 20528B: ['Identificação', 'Dados comuns', 'Dados máquina', 'Condições climáticas', 'Estator principal', 'Acessórios', 'Avaliação Global dos Parâmetros de Isolamento']
+  [ensaio] Aba 'Avaliação Global dos Parâmetros de Isolamento' não existe para 20528B, OS ignorada.
+  [skip] 20528B sem ngb-nav-15. Nada será gravado para essa OS.
+  [save] MudanÃ§a de letra 2 â†’ 1. A guardar Excel...
+  [save] Ficheiros Excel guardados.
+NR_OS: 17959V
+Criado: 03/10/24
+Preenchido: 13/10/24
+Submetido: 13/10/24
+Processado: 13/10/24
+Revisado: 13/10/24
+Disponibilizado: 13/10/24
+Aprovado: 15/10/24
+Cliente: ELDORADO BRASIL CELULOSE SA (1C03969 - 3951)
+Planta: TRÊS LAGOAS/MS
+Setor: PRODUÇÃO
+Tag da Máquina: 3202-26-35 (Reserva) (1017154340)
+Tipo de Equipamento: Motor de Indução Assíncrono de Rotor em Gaiola
+Tipo de Diagnóstico: Comum
+Responsáveis: Supervisor de Serviço de Campo
+['BOROSCÓPIO', '07710', '-', '', '07710', 'TERMOHIGROMETRO', 'TH006', '1', '25/06/26', 'TH006', 'CALIBRADOR PD', '189152', '1', '25/02/27', '07117', 'NOTEBOOK', '5CG7375JDX', '1', '', '4344', 'NOTEBOOK', '-', '1', '', '7146', 'MEDIDOR DE PERDAS - MIDAS', '-', '1', '25/02/27', '07146', 'MEGOHMETRO', '-', '1', '25/02/27', '10375', 'MICROHMIMETRO', '-', '1', '25/02/27', '10306', 'CAPACITOR', '-', '1', '', '10339', 'MEDIDOR DE DESCARGAS PARCIAIS', '-', '1', '02/10/26', '4348', 'QUADRIPOLO', '187408', '1', '21/05/26', '187408', 'RESSONADOR', '-', '1', '29/09/30', '10371']
+O Kit Utilizado Ã©: 1
+--------------------------------------------------
+  [abas] Abas encontradas para 17959V: ['Identificação', 'Dados comuns', 'Dados máquina', 'Condições climáticas', 'Estator principal', 'Acessórios', 'Avaliação Global dos Parâmetros de Isolamento']
+  [ensaio] Aba 'Avaliação Global dos Parâmetros de Isolamento' não existe para 17959V, OS ignorada.
+  [skip] 17959V sem ngb-nav-15. Nada será gravado para essa OS.
+  [save] MudanÃ§a de letra 1 â†’ 2. A guardar Excel...
+  [save] Ficheiros Excel guardados.
+NR_OS: 21098V
+Criado: 12/11/25
+Preenchido: 14/11/25
+Submetido: 14/11/25
+Processado: 14/11/25
+Revisado: 14/11/25
+Disponibilizado: 15/11/25
+Aprovado: 17/11/25
+Cliente: ELDORADO BRASIL CELULOSE SA (1C03969 - 3951)
+Planta: TRÊS LAGOAS/MS
+Setor: PRODUÇÃO
+Tag da Máquina: 3402-26-002-M (1013092903 01 12)
+Tipo de Equipamento: Motor de Indução Assíncrono de Rotor em Gaiola
+Tipo de Diagnóstico: Comum
+Responsáveis: Supervisor de Serviço de Campo
+['MEDIDOR DE PERDAS - MIDAS', '182941', '2', '02/02/27', '07145', 'RESSONADOR', '-', '2', '04/04/30', '3895', 'MEDIDOR DE DESCARGAS PARCIAIS', '183181', '2', '02/02/27', '3896', 'MEGOHMETRO', '-', '2', '', '-', 'MICROHMIMETRO', 'UM8154I', '2', '10/02/26', '10305', 'CALIBRADOR PD', '20080504', '2', '26/02/27', '07957', 'TERMOHIGROMETRO', 'TH027', '2', '01/07/26', '01180', 'MULTIMETRO', '012685', '2', '29/07/26', '012685', 'CAPACITOR', '183259', '2', '25/02/27', '3897', 'NOTEBOOK', '-', '2', '', '7145', 'MEGOHMETRO', '-', '2', '22/10/24', '4271', 'ALICATE AMPERÍMETRO', 'AL009', '2', '26/02/27', '011822']
+O Kit Utilizado Ã©: 2
+--------------------------------------------------
+  [abas] Abas encontradas para 21098V: ['Identificação', 'Dados comuns', 'Dados máquina', 'Condições climáticas', 'Estator principal', 'Acessórios', 'Avaliação Global dos Parâmetros de Isolamento']
+  [ensaio] Aba 'Avaliação Global dos Parâmetros de Isolamento' não existe para 21098V, OS ignorada.
+  [skip] 21098V sem ngb-nav-15. Nada será gravado para essa OS.

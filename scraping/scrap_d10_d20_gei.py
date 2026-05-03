@@ -1242,6 +1242,16 @@ for item_text in all_items_list:
 
             }
 
+            colunas_obrigatorias_ensaio = [
+
+                'IP', 'ΔI', 'Pi1/Vn', 'PD', 'ΔTan δ', 'Tang δ (h)', 'Tan δ', 'H',
+
+                'Grau de Envelhecimento GEI (Anos)',
+
+            ]
+
+            ignorar_os_sem_aba_ensaio = False
+
             try:
 
                 # Debug: listar todas as abas disponÃ­veis
@@ -1258,19 +1268,21 @@ for item_text in all_items_list:
 
 
 
-                # Procura a aba pelo texto em qualquer nÃ­vel filho (div estÃ¡ entre ul e li)
+                # A aba de avaliacao global e obrigatoria para processar a OS.
 
                 tab_list = browser.find_elements(
 
                     By.XPATH,
 
-                    "//ul[@role='tablist']//a[contains(.,'Avaliação Global') and contains(.,'Isolamento')]"
+                    "//*[@id='ngb-nav-15' and contains(.,'Avaliação Global') and contains(.,'Isolamento')]"
 
                 )
 
                 if not tab_list:
 
-                    print(f"  [ensaio] Aba 'Avaliação Global dos Parâmetros de Isolamento' não existe para {item_text}, pulando...")
+                    print(f"  [ensaio] Aba 'Avaliação Global dos Parâmetros de Isolamento' não existe para {item_text}, OS ignorada.")
+
+                    ignorar_os_sem_aba_ensaio = True
 
                 else:
 
@@ -1329,6 +1341,10 @@ for item_text in all_items_list:
                             valor = cols[1].text.strip()
 
                             if param in parametros_alvo:
+
+                                if param == 'H' and valor == '-':
+
+                                    valor = '0,01'
 
                                 dados_ensaio[param] = valor
 
@@ -1430,9 +1446,31 @@ for item_text in all_items_list:
 
 
 
+            if ignorar_os_sem_aba_ensaio:
+
+                print(f"  [skip] {item_text} sem ngb-nav-15. Nada será gravado para essa OS.")
+
+                break
+
+
+
             if not item_text.startswith('D'):
 
-                reconciliar_registro(dados_ensaios, dados_ensaio, _colunas_ensaios, "Dados_Ensaios.xlsx", False)
+                ensaio_completo = all(
+
+                    normalizar_valor_comparacao(dados_ensaio.get(coluna))
+
+                    for coluna in colunas_obrigatorias_ensaio
+
+                )
+
+                if ensaio_completo:
+
+                    reconciliar_registro(dados_ensaios, dados_ensaio, _colunas_ensaios, "Dados_Ensaios.xlsx", False)
+
+                else:
+
+                    print(f"  [skip] Dados_Ensaios.xlsx: {item_text} com campos obrigatórios de ensaio vazios. Nada será gravado.")
 
 
 
