@@ -12,14 +12,14 @@ Arquivos criados:
 - `../estudo/treinar_modelo_ml_daimer.py`: treino, validacao cruzada, selecao de modelos e salvamento dos artefatos.
 - `relatorio_pesos_modelo_ml.md`: pesos aprendidos por input para D10, D20 e GEI.
 
-Artefatos treinados salvos fora do OneDrive:
+Artefatos treinados salvos no workspace:
 
-- `C:\Users\Alessandro\daimer_modelos_ml\daimer_ml_bundle.joblib`
-- `C:\Users\Alessandro\daimer_modelos_ml\metricas_ml.json`
+- `../modelos_ml/daimer_ml_bundle.joblib`
+- `../modelos_ml/metricas_ml.json`
 
 Versao atual do bundle: `2`, com anchors externos embutidos.
 
-O salvamento ficou fora do workspace porque o OneDrive bloqueou escrita confiavel de binarios dentro da subpasta `modelos_ml`.
+Os artefatos ficam na subpasta `../modelos_ml/` para manter treino, bundle e metricas no mesmo layout do projeto.
 
 ## Features usadas
 

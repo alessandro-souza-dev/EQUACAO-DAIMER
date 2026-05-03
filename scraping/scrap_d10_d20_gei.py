@@ -33,7 +33,7 @@ from openpyxl.styles import NamedStyle
 
 from openpyxl.utils.dataframe import dataframe_to_rows
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 
 
@@ -50,23 +50,194 @@ if not os.path.exists(env_path):
 
     raise FileNotFoundError(f"Arquivo .env nao encontrado em: {env_path}")
 
-load_dotenv(dotenv_path=env_path, override=True)
+env_values = dotenv_values(env_path)
 
 print(f"[env] .env carregado: {env_path}")
 
 
 
-USERNAME_ENV = os.getenv('DAIMER_EMAIL') or os.getenv('USERNAME')
+def normalizar_valor_env(valor: Any) -> str:
 
-PASSWORD_ENV = os.getenv('DAIMER_PASSWORD') or os.getenv('PASSWORD')
+    if valor is None:
 
-if not USERNAME_ENV or not PASSWORD_ENV:
+        return ""
 
-    raise RuntimeError("Credenciais ausentes no .env. Configure DAIMER_EMAIL/USERNAME e DAIMER_PASSWORD/PASSWORD.")
+    texto = str(valor).strip()
 
-USERNAME: str = USERNAME_ENV
+    if len(texto) >= 2 and texto[0] == texto[-1] and texto[0] in {'"', "'"}:
 
-PASSWORD: str = PASSWORD_ENV
+        texto = texto[1:-1].strip()
+
+    return texto
+
+
+def obter_valor_env(*chaves: str, obrigatorio: bool = True) -> str | None:
+
+    for chave in chaves:
+
+        valor = normalizar_valor_env(env_values.get(chave))
+
+        if valor:
+
+            return valor
+
+    if obrigatorio:
+
+        raise RuntimeError(
+
+            f"Valor ausente no arquivo scraping/.env para uma das chaves: {', '.join(chaves)}"
+
+        )
+
+    return None
+
+
+def preencher_input_texto(elemento: Any, valor: str) -> None:
+
+    driver = elemento.parent
+
+    elemento.click()
+
+    try:
+
+        elemento.clear()
+
+    except Exception:
+
+        pass
+
+    elemento.send_keys(Keys.CONTROL, "a")
+
+    elemento.send_keys(Keys.DELETE)
+
+    elemento.send_keys(valor)
+
+    valor_atual = (elemento.get_attribute("value") or "").strip()
+
+    if valor_atual == valor:
+
+        return
+
+    driver.execute_script(
+
+        """
+        const element = arguments[0];
+        const value = arguments[1];
+        element.focus();
+        element.value = value;
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.dispatchEvent(new Event('blur', { bubbles: true }));
+        """,
+
+        elemento,
+
+        valor,
+
+    )
+
+    valor_atual = (elemento.get_attribute("value") or "").strip()
+
+    if valor_atual != valor:
+
+        raise RuntimeError("Nao foi possivel preencher o campo com o valor esperado do .env.")
+
+
+def mascarar_usuario(usuario: str) -> str:
+
+    if "@" not in usuario:
+
+        return f"***({len(usuario)})"
+
+    prefixo, dominio = usuario.split("@", 1)
+
+    prefixo_mascarado = prefixo[:2] + "***" if prefixo else "***"
+
+    return f"{prefixo_mascarado}@{dominio}"
+
+
+def extrair_textos_td_por_xpath(browser: webdriver.Chrome, tabela_xpath: str, tentativas: int = 3) -> list[str]:
+
+    ultimo_erro: Exception | None = None
+
+    for tentativa in range(1, tentativas + 1):
+
+        try:
+
+            textos = browser.execute_script(
+
+                """
+                const xpath = arguments[0];
+                const resultado = document.evaluate(
+                    xpath,
+                    document,
+                    null,
+                    XPathResult.FIRST_ORDERED_NODE_TYPE,
+                    null,
+                );
+                const tabela = resultado.singleNodeValue;
+                if (!tabela) {
+                    return null;
+                }
+                return Array.from(tabela.querySelectorAll('td')).map((celula) =>
+                    (celula.innerText || celula.textContent || '').trim()
+                );
+                """,
+
+                tabela_xpath,
+
+            )
+
+            if textos is None:
+
+                raise RuntimeError("Tabela nao encontrada no DOM atual.")
+
+            return [str(texto) for texto in textos]
+
+        except Exception as erro:
+
+            ultimo_erro = erro
+
+            if tentativa == tentativas:
+
+                break
+
+            time.sleep(0.5)
+
+    assert ultimo_erro is not None
+
+    raise RuntimeError(f"Nao foi possivel ler a tabela apos {tentativas} tentativas.") from ultimo_erro
+
+
+def clicar_xpath_quando_presente(browser: webdriver.Chrome, xpath: str, timeout: int = 10):
+
+    elemento = WebDriverWait(browser, timeout).until(
+
+        EC.presence_of_element_located((By.XPATH, xpath))
+
+    )
+
+    browser.execute_script("arguments[0].scrollIntoView({block: 'center'});", elemento)
+
+    browser.execute_script("arguments[0].click();", elemento)
+
+    return elemento
+
+
+SITE_URL_ENV = obter_valor_env('SITE_URL', obrigatorio=False)
+
+USERNAME: str = cast(str, obter_valor_env('DAIMER_EMAIL', 'USERNAME'))
+
+PASSWORD: str = cast(str, obter_valor_env('DAIMER_PASSWORD', 'PASSWORD'))
+
+print("[env] credenciais obtidas exclusivamente do arquivo .env.")
+
+print(f"[env] usuario selecionado: {mascarar_usuario(USERNAME)}")
+
+
+BASE_URL = SITE_URL_ENV or 'https://daimer.data.com.br/'
+MAX_BROWSER_START_RETRIES = 5
+PAGE_LOAD_TIMEOUT_SECONDS = 60
 
 
 
@@ -74,25 +245,106 @@ PASSWORD: str = PASSWORD_ENV
 
 chrome_options = webdriver.ChromeOptions()
 
+# --incognito garante sessao isolada; nao combinar com --user-data-dir (incompativel Chrome 147+)
 chrome_options.add_argument("--incognito")
+chrome_options.page_load_strategy = "eager"
 
 chrome_options.add_argument("--window-size=1920,1080")
+
+# Flags de estabilidade essenciais para Chrome automatizado
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--disable-software-rasterizer")
+chrome_options.add_argument("--disable-extensions")
+
+chrome_options.add_argument("--disable-features=PasswordManagerOnboarding,AutofillServerCommunication,PasswordLeakDetection")
+
+# Nota: add_experimental_option("prefs") e incompativel com --incognito no Chrome 147+
+# O modo incognito ja desativa passwords e autofill automaticamente
+
+
+def criar_browser() -> webdriver.Chrome:
+
+    novo_browser = webdriver.Chrome(options=chrome_options)
+
+    novo_browser.set_page_load_timeout(PAGE_LOAD_TIMEOUT_SECONDS)
+
+    novo_browser.maximize_window()
+
+    try:
+        novo_browser.execute_script("if(document.body) document.body.style.zoom='80%';")
+    except Exception:
+        pass
+
+    return novo_browser
+
+
+def abrir_site_com_retry(browser: webdriver.Chrome, contexto: str, tentativas: int = MAX_BROWSER_START_RETRIES) -> webdriver.Chrome:
+
+    ultimo_erro: Exception | None = None
+
+    browser_atual = browser
+
+    for tentativa in range(1, tentativas + 1):
+
+        try:
+
+            browser_atual.get(BASE_URL)
+
+            WebDriverWait(browser_atual, 20).until(
+
+                EC.presence_of_element_located((By.XPATH, "//input[@placeholder='E-mail']"))
+
+            )
+
+            return browser_atual
+
+        except Exception as erro:
+
+            ultimo_erro = erro
+
+            print(
+
+                f"[browser] Falha ao abrir {BASE_URL} em {contexto} "
+
+                f"(tentativa {tentativa}/{tentativas}): {type(erro).__name__}: {erro}"
+
+            )
+
+            try:
+
+                browser_atual.quit()
+
+            except Exception:
+
+                pass
+
+            if tentativa == tentativas:
+
+                break
+
+            espera = 10 * tentativa  # 10s, 20s, 30s, 40s...
+            print(f"[browser] A aguardar {espera}s antes de nova tentativa...")
+            time.sleep(espera)
+
+            browser_atual = criar_browser()
+
+    assert ultimo_erro is not None
+
+    raise RuntimeError(f"Nao foi possivel abrir o site DAIMER em {contexto} apos {tentativas} tentativas.") from ultimo_erro
 
 
 
 # Inicialize o webdriver Chromium (Chrome) usando o ChromeDriver
 
-browser = webdriver.Chrome(options=chrome_options)
-
-browser.maximize_window()
-
-browser.execute_script("document.body.style.zoom='80%'")
+browser = criar_browser()
 
 
 
 # Abrir o site
 
-browser.get('https://daimer.data.com.br/')
+browser = abrir_site_com_retry(browser, "inicio")
 
 
 
@@ -100,7 +352,7 @@ browser.get('https://daimer.data.com.br/')
 
 login_field = browser.find_element(By.XPATH, "//input[@placeholder='E-mail']")
 
-login_field.send_keys(USERNAME)
+preencher_input_texto(login_field, USERNAME)
 
 
 
@@ -110,7 +362,7 @@ password_field = browser.find_element(
 
     By.XPATH, "//input[@placeholder='Senha']")
 
-password_field.send_keys(PASSWORD)
+preencher_input_texto(password_field, PASSWORD)
 
 
 
@@ -136,15 +388,13 @@ try:
 
     # Localize o elemento <select> usando XPath e clique nele
 
-    entrada_dados = WebDriverWait(browser, 10).until(
+    clicar_xpath_quando_presente(
 
-        EC.element_to_be_clickable(
+        browser,
 
-            (By.XPATH, "/html/body/app-root/div/div/sidepanel/aside[1]/div[3]/div[2]/div/a[3]/div/i"))
+        "/html/body/app-root/div/div/sidepanel/aside[1]/div[3]/div[2]/div/a[3]/div/i",
 
     )
-
-    entrada_dados.click()
 
 except Exception as e:
 
@@ -160,19 +410,13 @@ except Exception as e:
 
 # Aguarde atÃ© que o dropdown seja clicÃ¡vel
 
-dropdown_element = WebDriverWait(browser, 10).until(
+clicar_xpath_quando_presente(
 
-    EC.element_to_be_clickable(
+    browser,
 
-        (By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[1]/div/form/vitau-datalist"))
+    "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[1]/div/form/vitau-datalist",
 
 )
-
-
-
-# Clique no dropdown para abrir as opÃ§Ãµes
-
-dropdown_element.click()
 
 
 
@@ -632,7 +876,7 @@ for item_text in all_items_list:
 
         try:
 
-            browser.get('https://daimer.data.com.br/')
+            browser = abrir_site_com_retry(browser, f"recuperacao de {item_text}")
 
             time.sleep(3)
 
@@ -642,9 +886,11 @@ for item_text in all_items_list:
 
             )
 
-            login_field2.send_keys(USERNAME)
+            preencher_input_texto(login_field2, USERNAME)
 
-            browser.find_element(By.XPATH, "//input[@placeholder='Senha']").send_keys(PASSWORD)
+            password_field2 = browser.find_element(By.XPATH, "//input[@placeholder='Senha']")
+
+            preencher_input_texto(password_field2, PASSWORD)
 
             btn2 = WebDriverWait(browser, 10).until(
 
@@ -656,23 +902,23 @@ for item_text in all_items_list:
 
             time.sleep(3)
 
-            WebDriverWait(browser, 10).until(
+            clicar_xpath_quando_presente(
 
-                EC.element_to_be_clickable(
+                browser,
 
-                    (By.XPATH, "/html/body/app-root/div/div/sidepanel/aside[1]/div[3]/div[2]/div/a[3]/div/i"))
+                "/html/body/app-root/div/div/sidepanel/aside[1]/div[3]/div[2]/div/a[3]/div/i",
 
-            ).click()
+            )
 
             time.sleep(2)
 
-            WebDriverWait(browser, 10).until(
+            clicar_xpath_quando_presente(
 
-                EC.element_to_be_clickable(
+                browser,
 
-                    (By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[1]/div/form/vitau-datalist"))
+                "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[1]/div/form/vitau-datalist",
 
-            ).click()
+            )
 
             input_element = WebDriverWait(browser, 10).until(
 
@@ -694,593 +940,593 @@ for item_text in all_items_list:
 
 
 
-    input_element.clear()
+    for _tentativa in range(3):
+        try:
+            input_element.clear()
 
-    input_element.send_keys(item_text)
+            input_element.send_keys(item_text)
 
-    input_element.send_keys(Keys.ENTER)
+            input_element.send_keys(Keys.ENTER)
 
 
 
-    # Aguarde um curto perÃ­odo antes de inserir o prÃ³ximo item (opcional)
+            # Aguarde um curto perÃ­odo antes de inserir o prÃ³ximo item (opcional)
 
-    time.sleep(3)
+            time.sleep(3)
 
 
 
-    # Raspagem de dados (adapte os locators para corresponder Ã  estrutura da pÃ¡gina)
+            # Raspagem de dados (adapte os locators para corresponder Ã  estrutura da pÃ¡gina)
 
-    criado_element = browser.find_element(
+            criado_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[1]/div[3]/small")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[1]/div[3]/small")
 
-    preenchido_element = browser.find_element(
+            preenchido_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[2]/div[3]/small")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[2]/div[3]/small")
 
-    submetido_element = browser.find_element(
+            submetido_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[3]/div[3]/small")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[3]/div[3]/small")
 
-    processado_element = browser.find_element(
+            processado_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[4]/div[3]/small")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[4]/div[3]/small")
 
-    revisado_element = browser.find_element(
+            revisado_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[5]/div[3]/small")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[5]/div[3]/small")
 
-    disponibilizado_element = browser.find_element(
+            disponibilizado_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[6]/div[3]/small")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[6]/div[3]/small")
 
-    aprovado_element = browser.find_element(
+            aprovado_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[7]/div[3]/small")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[2]/p-timeline/div/div[7]/div[3]/small")
 
-    # Localize o elemento do cliente
+            # Localize o elemento do cliente
 
-    client_element = browser.find_element(
+            client_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[1]/vitau-textinput/input")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[1]/vitau-textinput/input")
 
-    # Remova o atributo "disabled" usando JavaScript
+            # Remova o atributo "disabled" usando JavaScript
 
-    browser.execute_script(
+            browser.execute_script(
 
-        "arguments[0].removeAttribute('disabled');", client_element)
+                "arguments[0].removeAttribute('disabled');", client_element)
 
-    # Obtenha o valor do cliente do elemento
+            # Obtenha o valor do cliente do elemento
 
-    client_text = (client_element.get_attribute("value") or "").strip()
+            client_text = (client_element.get_attribute("value") or "").strip()
 
 
 
-    # Localize o elemento da planta
+            # Localize o elemento da planta
 
-    plant_element = browser.find_element(
+            plant_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[2]/vitau-textinput/input")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[2]/vitau-textinput/input")
 
-    # Remova o atributo "disabled" usando JavaScript
+            # Remova o atributo "disabled" usando JavaScript
 
-    browser.execute_script(
+            browser.execute_script(
 
-        "arguments[0].removeAttribute('disabled');", plant_element)
+                "arguments[0].removeAttribute('disabled');", plant_element)
 
-    # Obtenha o valor da planta do elemento
+            # Obtenha o valor da planta do elemento
 
-    plant_text = (plant_element.get_attribute("value") or "").strip()
+            plant_text = (plant_element.get_attribute("value") or "").strip()
 
 
 
-    # Localize o elemento do setor
+            # Localize o elemento do setor
 
-    sector_element = browser.find_element(
+            sector_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[3]/vitau-textinput/input")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[3]/vitau-textinput/input")
 
-    # Remova o disabled
+            # Remova o disabled
 
-    browser.execute_script(
+            browser.execute_script(
 
-        "arguments[0].removeAttribute('disabled');", sector_element)
+                "arguments[0].removeAttribute('disabled');", sector_element)
 
-    # Obtenha o VALUE
+            # Obtenha o VALUE
 
-    sector_text = (sector_element.get_attribute("value") or "").strip()
+            sector_text = (sector_element.get_attribute("value") or "").strip()
 
-    # Localize o elemento da etiqueta da mÃ¡quina (machine tag)
+            # Localize o elemento da etiqueta da mÃ¡quina (machine tag)
 
 
 
-    machine_tag_element = browser.find_element(
+            machine_tag_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[4]/vitau-textinput/input")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[1]/form[4]/vitau-textinput/input")
 
-    # Remova o atributo "disabled" usando JavaScript
+            # Remova o atributo "disabled" usando JavaScript
 
-    browser.execute_script(
+            browser.execute_script(
 
-        "arguments[0].removeAttribute('disabled');", machine_tag_element)
+                "arguments[0].removeAttribute('disabled');", machine_tag_element)
 
-    # Obtenha o valor da etiqueta da mÃ¡quina do elemento
+            # Obtenha o valor da etiqueta da mÃ¡quina do elemento
 
-    machine_tag_text = (machine_tag_element.get_attribute("value") or "").strip()
+            machine_tag_text = (machine_tag_element.get_attribute("value") or "").strip()
 
 
 
-    # Localize o elemento do tipo de equipamento (equipment type)
+            # Localize o elemento do tipo de equipamento (equipment type)
 
-    equipment_type_element = browser.find_element(
+            equipment_type_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[2]/form/vitau-textinput/input")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[2]/form/vitau-textinput/input")
 
-    # Remova o atributo "disabled" usando JavaScript
+            # Remova o atributo "disabled" usando JavaScript
 
-    browser.execute_script(
+            browser.execute_script(
 
-        "arguments[0].removeAttribute('disabled');", equipment_type_element)
+                "arguments[0].removeAttribute('disabled');", equipment_type_element)
 
-    # Obtenha o valor do tipo de equipamento do elemento
+            # Obtenha o valor do tipo de equipamento do elemento
 
-    equipment_type_text = (equipment_type_element.get_attribute("value") or "").strip()
+            equipment_type_text = (equipment_type_element.get_attribute("value") or "").strip()
 
 
 
-    # Localize o elemento do tipo de diagnÃ³stico (diagnosis type)
+            # Localize o elemento do tipo de diagnÃ³stico (diagnosis type)
 
-    diagnosis_type_element = browser.find_element(
+            diagnosis_type_element = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[2]/vitau-select/select")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[1]/div[2]/vitau-select/select")
 
-    # Remova o atributo "disabled" usando JavaScript
+            # Remova o atributo "disabled" usando JavaScript
 
-    browser.execute_script(
+            browser.execute_script(
 
-        "arguments[0].removeAttribute('disabled');", diagnosis_type_element)
+                "arguments[0].removeAttribute('disabled');", diagnosis_type_element)
 
-    diagnosis_type_select = Select(diagnosis_type_element)
+            diagnosis_type_select = Select(diagnosis_type_element)
 
-    selected_text = diagnosis_type_select.first_selected_option.text
+            selected_text = diagnosis_type_select.first_selected_option.text
 
 
 
-    # Localize o(s) elemento(s) do responsÃ¡vel (pode haver 0, 1 ou vÃ¡rios)
+            # Localize o(s) elemento(s) do responsÃ¡vel (pode haver 0, 1 ou vÃ¡rios)
 
-    responsible_elements = browser.find_elements(
+            responsible_elements = browser.find_elements(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[2]/div[1]/div[1]/ng2-smart-table/table/tbody/tr/td[2]/ng2-smart-table-cell/table-cell-view-mode/div/div")
+                By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[2]/div[1]/div[1]/ng2-smart-table/table/tbody/tr/td[2]/ng2-smart-table-cell/table-cell-view-mode/div/div")
 
 
 
-    # Extraia o texto de cada elemento
+            # Extraia o texto de cada elemento
 
-    criado_text = criado_element.text
+            criado_text = criado_element.text
 
-    preenchido_text = preenchido_element.text
+            preenchido_text = preenchido_element.text
 
-    submetido_text = submetido_element.text
+            submetido_text = submetido_element.text
 
-    processado_text = processado_element.text
+            processado_text = processado_element.text
 
-    revisado_text = revisado_element.text
+            revisado_text = revisado_element.text
 
-    disponibilizado_text = disponibilizado_element.text
+            disponibilizado_text = disponibilizado_element.text
 
-    aprovado_text = aprovado_element.text
+            aprovado_text = aprovado_element.text
 
-    client_text = client_text
+            client_text = client_text
 
-    plant_text = plant_text
+            plant_text = plant_text
 
-    sector_text = sector_text
+            sector_text = sector_text
 
-    machine_tag_text = machine_tag_text
+            machine_tag_text = machine_tag_text
 
-    equipment_type_text = equipment_type_text
+            equipment_type_text = equipment_type_text
 
-    diagnosis_type_text = selected_text
+            diagnosis_type_text = selected_text
 
-    responsibles_text = ", ".join([e.text.strip() for e in responsible_elements if e.text.strip()]) or "NA"
+            responsibles_text = ", ".join([e.text.strip() for e in responsible_elements if e.text.strip()]) or "NA"
 
 
 
-    # Imprimir cada item
+            # Imprimir cada item
 
-    print(f"NR_OS: {item_text}")
+            print(f"NR_OS: {item_text}")
 
-    print(f"Criado: {criado_text}")
+            print(f"Criado: {criado_text}")
 
-    print(f"Preenchido: {preenchido_text}")
+            print(f"Preenchido: {preenchido_text}")
 
-    print(f"Submetido: {submetido_text}")
+            print(f"Submetido: {submetido_text}")
 
-    print(f"Processado: {processado_text}")
+            print(f"Processado: {processado_text}")
 
-    print(f"Revisado: {revisado_text}")
+            print(f"Revisado: {revisado_text}")
 
-    print(f"Disponibilizado: {disponibilizado_text}")
+            print(f"Disponibilizado: {disponibilizado_text}")
 
-    print(f"Aprovado: {aprovado_text}")
+            print(f"Aprovado: {aprovado_text}")
 
-    print(f"Cliente: {client_text}")
+            print(f"Cliente: {client_text}")
 
-    print(f"Planta: {plant_text}")
+            print(f"Planta: {plant_text}")
 
-    print(f"Setor: {sector_text}")
+            print(f"Setor: {sector_text}")
 
-    print(f"Tag da Máquina: {machine_tag_text}")
+            print(f"Tag da Máquina: {machine_tag_text}")
 
-    print(f"Tipo de Equipamento: {equipment_type_text}")
+            print(f"Tipo de Equipamento: {equipment_type_text}")
 
-    print(f"Tipo de Diagnóstico: {diagnosis_type_text}")
+            print(f"Tipo de Diagnóstico: {diagnosis_type_text}")
 
-    print(f"Responsáveis: {responsibles_text}")
+            print(f"Responsáveis: {responsibles_text}")
 
 
 
-    # Localize a tabela usando o seletor XPath fornecido
+            tabela_xpath = "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[2]/div[1]/div[3]/ng2-smart-table/table/tbody"
 
-    tabela = browser.find_element(
+            elemento_td = extrair_textos_td_por_xpath(browser, tabela_xpath)
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[2]/div[1]/div[3]/ng2-smart-table/table/tbody")
+            print(elemento_td)
 
 
 
-    # Suponha que vocÃª jÃ¡ tenha obtido os elementos da tabela como mencionado anteriormente
+            # Verifique se "ANALISADOR MOVEL DE SISTEMAS ISOLANTES" estÃ¡ na lista
 
-    elementos_td = tabela.find_elements(By.TAG_NAME, "td")
+            if "ANALISADOR MOVEL DE SISTEMAS ISOLANTES" in elemento_td:
 
+                Kit_Utilizado = "ANALISADOR MOVEL DE SISTEMAS ISOLANTES"
 
+            elif "MEDIDOR DE PERDAS - MIDAS (LABORATORIO DE ENSAIOS)" in elemento_td:
 
-    # Declare elemento_td como uma lista vazia
+                Kit_Utilizado = "MEDIDOR DE PERDAS - MIDAS (LABORATORIO DE ENSAIOS)"
 
-    elemento_td = []
+            elif "MEDIDOR DE PERDAS - MIDAS" in elemento_td:
 
+                # Encontre todos os Ã­ndices onde "MEDIDOR DE PERDAS - MIDAS" estÃ¡ presente
 
+                indices_medidor_perdas = [i for i, valor in enumerate(
 
-    # Itere sobre os elementos e obtenha os textos
+                    elemento_td) if valor == "MEDIDOR DE PERDAS - MIDAS"]
 
-    for elemento in elementos_td:
 
-        texto = elemento.text
 
-        elemento_td.append(texto)
+                # Verifique se existem pelo menos dois elementos apÃ³s "MEDIDOR DE PERDAS - MIDAS" no Ãºltimo Ã­ndice
 
+                if indices_medidor_perdas and len(elemento_td) > indices_medidor_perdas[-1] + 2:
 
+                    Kit_Utilizado = elemento_td[indices_medidor_perdas[-1] + 2]
 
-    # Fora do loop, imprima a lista completa
+                else:
 
-    print(elemento_td)
+                    Kit_Utilizado = "NA"
 
+            else:
 
+                Kit_Utilizado = "NA"
 
-    # Reencontre a tabela apÃ³s alguma interaÃ§Ã£o que pode tornar os elementos obsoletos
 
-    tabela = browser.find_element(
 
-        By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[2]/div[1]/div[3]/ng2-smart-table/table/tbody")
+            print(f"O Kit Utilizado Ã©: {Kit_Utilizado}")
 
-
-
-    # Suponha que vocÃª jÃ¡ tenha obtido os elementos da tabela novamente apÃ³s a interaÃ§Ã£o
-
-    elementos_td = tabela.find_elements(By.TAG_NAME, "td")
-
-
-
-    # Verifique se "ANALISADOR MOVEL DE SISTEMAS ISOLANTES" estÃ¡ na lista
-
-    if "ANALISADOR MOVEL DE SISTEMAS ISOLANTES" in elemento_td:
-
-        Kit_Utilizado = "ANALISADOR MOVEL DE SISTEMAS ISOLANTES"
-
-    elif "MEDIDOR DE PERDAS - MIDAS (LABORATORIO DE ENSAIOS)" in elemento_td:
-
-        Kit_Utilizado = "MEDIDOR DE PERDAS - MIDAS (LABORATORIO DE ENSAIOS)"
-
-    elif "MEDIDOR DE PERDAS - MIDAS" in elemento_td:
-
-        # Encontre todos os Ã­ndices onde "MEDIDOR DE PERDAS - MIDAS" estÃ¡ presente
-
-        indices_medidor_perdas = [i for i, valor in enumerate(
-
-            elemento_td) if valor == "MEDIDOR DE PERDAS - MIDAS"]
-
-
-
-        # Verifique se existem pelo menos dois elementos apÃ³s "MEDIDOR DE PERDAS - MIDAS" no Ãºltimo Ã­ndice
-
-        if indices_medidor_perdas and len(elemento_td) > indices_medidor_perdas[-1] + 2:
-
-            Kit_Utilizado = elemento_td[indices_medidor_perdas[-1] + 2]
-
-        else:
-
-            Kit_Utilizado = "NA"
-
-    else:
-
-        Kit_Utilizado = "NA"
-
-
-
-    print(f"O Kit Utilizado Ã©: {Kit_Utilizado}")
-
-    print("-" * 50)
-
-    time.sleep(2)
-
-
-
-    # ---- ExtraÃ§Ã£o de dados de ensaios elÃ©tricos (aba ngb-nav-8) ----
-
-    dados_ensaio: dict[str, Any] = {
-
-        'NR_OS': item_text,
-
-        'Tipo de Equipamento': equipment_type_text,
-
-        'IP': None, 'ΔI': None, 'Pi1/Vn': None, 'PD': None,
-
-        'ΔTan δ': None, 'Tang δ (h)': None, 'Tan δ': None, 'H': None,
-
-        'Grau de Envelhecimento GEI (Anos)': None, 'GEI - Referência': None,
-
-        'Avaliação Global': None, 'Avaliação Global - Referência': None,
-
-        'Grau de Deterioração (D10)': None, 'D10 - Referência': None,
-
-        'Grau de Contaminação (D20)': None, 'D20 - Referência': None,
-
-    }
-
-    try:
-
-        # Debug: listar todas as abas disponÃ­veis
-
-        todas_abas = browser.find_elements(
-
-            By.XPATH,
-
-            "//ul[@role='tablist']//a"
-
-        )
-
-        print(f"  [abas] Abas encontradas para {item_text}: {[a.text.strip() for a in todas_abas]}")
-
-
-
-        # Procura a aba pelo texto em qualquer nÃ­vel filho (div estÃ¡ entre ul e li)
-
-        tab_list = browser.find_elements(
-
-            By.XPATH,
-
-            "//ul[@role='tablist']//a[contains(.,'Avaliação Global') and contains(.,'Isolamento')]"
-
-        )
-
-        if not tab_list:
-
-            print(f"  [ensaio] Aba 'Avaliação Global dos Parâmetros de Isolamento' não existe para {item_text}, pulando...")
-
-        else:
-
-            nav8 = tab_list[0]
-
-            print(f"  [ensaio] Aba encontrada para {item_text}, clicando...")
-
-            browser.execute_script("arguments[0].scrollIntoView(true);", nav8)
-
-            time.sleep(0.5)
-
-            browser.execute_script("arguments[0].click();", nav8)
-
-            time.sleep(1)
-
-
-
-            # Abrir modal clicando no botÃ£o "Ver parÃ¢metros utilizados" (div.btn-ge)
-
-            em_button = WebDriverWait(browser, 5).until(
-
-                EC.element_to_be_clickable(
-
-                    (By.XPATH, "//div[contains(@class,'btn-ge')]"))
-
-            )
-
-            browser.execute_script("arguments[0].click();", em_button)
+            print("-" * 50)
 
             time.sleep(2)
 
 
 
-            # Extrair parametro e valor do modal
+            # ---- ExtraÃ§Ã£o de dados de ensaios elÃ©tricos (aba ngb-nav-8) ----
 
-            modal_div = WebDriverWait(browser, 5).until(
+            dados_ensaio: dict[str, Any] = {
 
-                EC.presence_of_element_located(
+                'NR_OS': item_text,
 
-                    (By.XPATH, '/html/body/ngb-modal-window/div/div/div[2]/div'))
+                'Tipo de Equipamento': equipment_type_text,
 
-            )
+                'IP': None, 'ΔI': None, 'Pi1/Vn': None, 'PD': None,
 
-            parametros_alvo = {'IP', 'ΔI', 'Pi1/Vn', 'PD', 'ΔTan δ', 'Tang δ (h)', 'Tan δ', 'H'}
+                'ΔTan δ': None, 'Tang δ (h)': None, 'Tan δ': None, 'H': None,
 
-            modal_rows = modal_div.find_elements(By.XPATH, './/tr')
+                'Grau de Envelhecimento GEI (Anos)': None, 'GEI - Referência': None,
 
-            for row in modal_rows:
+                'Avaliação Global': None, 'Avaliação Global - Referência': None,
 
-                cols = row.find_elements(By.TAG_NAME, 'td')
+                'Grau de Deterioração (D10)': None, 'D10 - Referência': None,
 
-                if len(cols) >= 2:
+                'Grau de Contaminação (D20)': None, 'D20 - Referência': None,
 
-                    param = cols[0].text.strip()
-
-                    valor = cols[1].text.strip()
-
-                    if param in parametros_alvo:
-
-                        dados_ensaio[param] = valor
-
-                        print(f"  [modal] {param} = {valor}")
-
-
-
-            # Fechar o modal com ESC (body.click() pode navegar para outro elemento)
-
-            webdriver.ActionChains(browser).send_keys(Keys.ESCAPE).perform()
-
-            time.sleep(1)
-
-
-
-            # Extrair tabela de resultados (Grau de Envelhecimento, AvaliaÃ§Ã£o Global, etc.)
+            }
 
             try:
 
-                tabela_resultado = WebDriverWait(browser, 5).until(
+                # Debug: listar todas as abas disponÃ­veis
 
-                    EC.presence_of_element_located(
+                todas_abas = browser.find_elements(
 
-                        (By.XPATH, '/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[2]/div/div[3]'))
+                    By.XPATH,
 
-                )
-
-                ht_rows = tabela_resultado.find_elements(By.XPATH, './/tr')
-
-                for row in ht_rows:
-
-                    cols = row.find_elements(By.TAG_NAME, 'td')
-
-                    if len(cols) >= 2:
-
-                        param = cols[0].text.strip()
-
-                        valor = cols[1].text.strip()
-
-                        ref = cols[2].text.strip() if len(cols) >= 3 else None
-
-                        print(f"  [tabela] {param} = {valor} | ref={ref}")
-
-                        if 'Grau de Envelhecimento' in param or 'GEI' in param:
-
-                            dados_ensaio['Grau de Envelhecimento GEI (Anos)'] = valor
-
-                            dados_ensaio['GEI - Referência'] = ref
-
-                        elif 'Avaliação Global' in param:
-
-                            dados_ensaio['Avaliação Global'] = valor
-
-                            dados_ensaio['Avaliação Global - Referência'] = ref
-
-                        elif 'Grau de Deterioração' in param or 'D10' in param:
-
-                            dados_ensaio['Grau de Deterioração (D10)'] = valor
-
-                            dados_ensaio['D10 - Referência'] = ref
-
-                        elif 'Grau de Contaminação' in param or 'D20' in param:
-
-                            dados_ensaio['Grau de Contaminação (D20)'] = valor
-
-                            dados_ensaio['D20 - Referência'] = ref
-
-            except TimeoutException:
-
-                print(f"  [ensaio] Tabela de resultados nÃ£o encontrada para {item_text}")
-
-
-
-            # Voltar para a aba IdentificaÃ§Ã£o para nÃ£o quebrar a extraÃ§Ã£o do prÃ³ximo OS
-
-            try:
-
-                aba_id = browser.find_elements(
-
-                    By.XPATH, "//ul[@role='tablist']//a[contains(.,'Identificação')]"
+                    "//ul[@role='tablist']//a"
 
                 )
 
-                if aba_id:
+                print(f"  [abas] Abas encontradas para {item_text}: {[a.text.strip() for a in todas_abas]}")
 
-                    browser.execute_script("arguments[0].click();", aba_id[0])
+
+
+                # Procura a aba pelo texto em qualquer nÃ­vel filho (div estÃ¡ entre ul e li)
+
+                tab_list = browser.find_elements(
+
+                    By.XPATH,
+
+                    "//ul[@role='tablist']//a[contains(.,'Avaliação Global') and contains(.,'Isolamento')]"
+
+                )
+
+                if not tab_list:
+
+                    print(f"  [ensaio] Aba 'Avaliação Global dos Parâmetros de Isolamento' não existe para {item_text}, pulando...")
+
+                else:
+
+                    nav8 = tab_list[0]
+
+                    print(f"  [ensaio] Aba encontrada para {item_text}, clicando...")
+
+                    browser.execute_script("arguments[0].scrollIntoView(true);", nav8)
 
                     time.sleep(0.5)
 
-            except Exception:
+                    browser.execute_script("arguments[0].click();", nav8)
 
-                pass
-
-
-
-    except Exception as e:
-
-        print(f"  [ensaio] Erro para {item_text}: {str(e)}")
+                    time.sleep(1)
 
 
 
-    if not item_text.startswith('D'):
+                    # Abrir modal clicando no botÃ£o "Ver parÃ¢metros utilizados" (div.btn-ge)
 
-        reconciliar_registro(dados_ensaios, dados_ensaio, _colunas_ensaios, "Dados_Ensaios.xlsx", False)
+                    em_button = WebDriverWait(browser, 5).until(
 
+                        EC.element_to_be_clickable(
 
+                            (By.XPATH, "//div[contains(@class,'btn-ge')]"))
 
-        # Certifique-se de que Kit_Utilizado tenha um valor
+                    )
 
-        if not 'Kit_Utilizado' in dir() or Kit_Utilizado is None:
+                    browser.execute_script("arguments[0].click();", em_button)
 
-            Kit_Utilizado = "NA"
-
-        dados_daimer = {
-
-            'NR_OS': item_text,
-
-            'Criado': criado_text,
-
-            'Preenchido': preenchido_text,
-
-            'Submetido': submetido_text,
-
-            'Processado': processado_text,
-
-            'Revisado': revisado_text,
-
-            'Disponibilizado': disponibilizado_text,
-
-            'Aprovado': aprovado_text,
-
-            'Cliente': client_text,
-
-            'Planta': plant_text,
-
-            'Setor': sector_text,
-
-            'Tag da Máquina(NS)': machine_tag_text,
-
-            'Tipo de Equipamento': equipment_type_text,
-
-            'Tipo de Diagnóstico': diagnosis_type_text,
-
-            'Serviço de Campo': responsibles_text,
-
-            'Kit_Utilizado': Kit_Utilizado,
-
-        }
-
-        reconciliar_registro(dados, dados_daimer, _colunas_daimer, "Dados_Daimer.xlsx", True)
-
-        os_processadas_execucao.add(item_os_normalizada)
+                    time.sleep(2)
 
 
 
-        # Guardar apÃ³s cada OS para nÃ£o perder dados em caso de crash
+                    # Extrair parametro e valor do modal
 
-        salvar_excels_incrementais(dados, dados_ensaios)
+                    modal_div = WebDriverWait(browser, 5).until(
+
+                        EC.presence_of_element_located(
+
+                            (By.XPATH, '/html/body/ngb-modal-window/div/div/div[2]/div'))
+
+                    )
+
+                    parametros_alvo = {'IP', 'ΔI', 'Pi1/Vn', 'PD', 'ΔTan δ', 'Tang δ (h)', 'Tan δ', 'H'}
+
+                    modal_rows = modal_div.find_elements(By.XPATH, './/tr')
+
+                    for row in modal_rows:
+
+                        cols = row.find_elements(By.TAG_NAME, 'td')
+
+                        if len(cols) >= 2:
+
+                            param = cols[0].text.strip()
+
+                            valor = cols[1].text.strip()
+
+                            if param in parametros_alvo:
+
+                                dados_ensaio[param] = valor
+
+                                print(f"  [modal] {param} = {valor}")
+
+
+
+                    # Fechar o modal com ESC (body.click() pode navegar para outro elemento)
+
+                    webdriver.ActionChains(browser).send_keys(Keys.ESCAPE).perform()
+
+                    time.sleep(1)
+
+
+
+                    # Extrair tabela de resultados (Grau de Envelhecimento, AvaliaÃ§Ã£o Global, etc.)
+
+                    try:
+
+                        tabela_resultado = WebDriverWait(browser, 5).until(
+
+                            EC.presence_of_element_located(
+
+                                (By.XPATH, '/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[2]/div[1]/div/div[2]/div/div[3]'))
+
+                        )
+
+                        ht_rows = tabela_resultado.find_elements(By.XPATH, './/tr')
+
+                        for row in ht_rows:
+
+                            cols = row.find_elements(By.TAG_NAME, 'td')
+
+                            if len(cols) >= 2:
+
+                                param = cols[0].text.strip()
+
+                                valor = cols[1].text.strip()
+
+                                ref = cols[2].text.strip() if len(cols) >= 3 else None
+
+                                print(f"  [tabela] {param} = {valor} | ref={ref}")
+
+                                if 'Grau de Envelhecimento' in param or 'GEI' in param:
+
+                                    dados_ensaio['Grau de Envelhecimento GEI (Anos)'] = valor
+
+                                    dados_ensaio['GEI - Referência'] = ref
+
+                                elif 'Avaliação Global' in param:
+
+                                    dados_ensaio['Avaliação Global'] = valor
+
+                                    dados_ensaio['Avaliação Global - Referência'] = ref
+
+                                elif 'Grau de Deterioração' in param or 'D10' in param:
+
+                                    dados_ensaio['Grau de Deterioração (D10)'] = valor
+
+                                    dados_ensaio['D10 - Referência'] = ref
+
+                                elif 'Grau de Contaminação' in param or 'D20' in param:
+
+                                    dados_ensaio['Grau de Contaminação (D20)'] = valor
+
+                                    dados_ensaio['D20 - Referência'] = ref
+
+                    except TimeoutException:
+
+                        print(f"  [ensaio] Tabela de resultados nÃ£o encontrada para {item_text}")
+
+
+
+                    # Voltar para a aba IdentificaÃ§Ã£o para nÃ£o quebrar a extraÃ§Ã£o do prÃ³ximo OS
+
+                    try:
+
+                        aba_id = browser.find_elements(
+
+                            By.XPATH, "//ul[@role='tablist']//a[contains(.,'Identificação')]"
+
+                        )
+
+                        if aba_id:
+
+                            browser.execute_script("arguments[0].click();", aba_id[0])
+
+                            time.sleep(0.5)
+
+                    except Exception:
+
+                        pass
+
+
+
+            except Exception as e:
+
+                print(f"  [ensaio] Erro para {item_text}: {str(e)}")
+
+
+
+            if not item_text.startswith('D'):
+
+                reconciliar_registro(dados_ensaios, dados_ensaio, _colunas_ensaios, "Dados_Ensaios.xlsx", False)
+
+
+
+                # Certifique-se de que Kit_Utilizado tenha um valor
+
+                if not 'Kit_Utilizado' in dir() or Kit_Utilizado is None:
+
+                    Kit_Utilizado = "NA"
+
+                dados_daimer = {
+
+                    'NR_OS': item_text,
+
+                    'Criado': criado_text,
+
+                    'Preenchido': preenchido_text,
+
+                    'Submetido': submetido_text,
+
+                    'Processado': processado_text,
+
+                    'Revisado': revisado_text,
+
+                    'Disponibilizado': disponibilizado_text,
+
+                    'Aprovado': aprovado_text,
+
+                    'Cliente': client_text,
+
+                    'Planta': plant_text,
+
+                    'Setor': sector_text,
+
+                    'Tag da Máquina(NS)': machine_tag_text,
+
+                    'Tipo de Equipamento': equipment_type_text,
+
+                    'Tipo de Diagnóstico': diagnosis_type_text,
+
+                    'Serviço de Campo': responsibles_text,
+
+                    'Kit_Utilizado': Kit_Utilizado,
+
+                }
+
+                reconciliar_registro(dados, dados_daimer, _colunas_daimer, "Dados_Daimer.xlsx", True)
+
+                os_processadas_execucao.add(item_os_normalizada)
+
+
+
+                # Guardar apÃ³s cada OS para nÃ£o perder dados em caso de crash
+
+                salvar_excels_incrementais(dados, dados_ensaios)
+            break  # sucesso
+        except Exception as e_scrape:
+            print(f"  [retry] Erro ao raspar {item_text} (tentativa {_tentativa + 1}/3): {e_scrape}")
+            if _tentativa < 2:
+                time.sleep(5)
+                # Tentar recuperar sessao: re-login com credenciais do .env
+                try:
+                    browser = abrir_site_com_retry(browser, f"retry {_tentativa + 1} de {item_text}")
+                    time.sleep(3)
+                    login_field_r = WebDriverWait(browser, 10).until(
+                        EC.presence_of_element_located((By.XPATH, "//input[@placeholder='E-mail']"))
+                    )
+                    preencher_input_texto(login_field_r, USERNAME)
+                    password_field_r = browser.find_element(By.XPATH, "//input[@placeholder='Senha']")
+                    preencher_input_texto(password_field_r, PASSWORD)
+                    btn_r = WebDriverWait(browser, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Enviar')]"))
+                    )
+                    browser.execute_script("arguments[0].click();", btn_r)
+                    time.sleep(3)
+                    clicar_xpath_quando_presente(
+                        browser,
+                        "/html/body/app-root/div/div/sidepanel/aside[1]/div[3]/div[2]/div/a[3]/div/i",
+                    )
+                    time.sleep(2)
+                    clicar_xpath_quando_presente(
+                        browser,
+                        "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div[1]/div[1]/div/form/vitau-datalist",
+                    )
+                    input_element = WebDriverWait(browser, 10).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, "/html/body/app-root/div/div/div/div[2]/div/div/inputs/div/div/div/div/div/form/vitau-datalist/input"))
+                    )
+                    print(f"  [retry] Sessao recuperada com credenciais do .env. A repetir {item_text}...")
+                except Exception as e_relogin:
+                    print(f"  [retry] Falha no re-login ({e_relogin}). Guardando e a saltar {item_text}...")
+                    salvar_excels_incrementais(dados, dados_ensaios)
+                    break
+            else:
+                print(f"  [retry] Maximo de tentativas atingido para {item_text}. A saltar...")
 
 
 
@@ -1350,4 +1596,10 @@ df_ensaios.to_excel(ENSAIOS_WORKBOOK, index=False)
 
 # Certifique-se de fechar o navegador no final
 
-browser.quit()
+try:
+
+    browser.quit()
+
+except Exception:
+
+    pass

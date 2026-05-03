@@ -332,7 +332,7 @@ def write_report(
         "",
         "## Cruzamento",
         "",
-        f"- Linhas com GEI e inputs validos em `scraping/Dados_Ensaios.xlsx`: {total_gei_rows}.",
+        f"- Linhas com GEI e inputs validos em `Dados_Ensaios.xlsx`: {total_gei_rows}.",
         f"- Linhas com GEI, inputs validos e tipo Motor/Gerador: {len(valid)}.",
         f"- Linhas fora da analise por falta de tipo Motor/Gerador: {excluded_without_motor_generator_type}.",
         f"- Linhas com `Tipo de Equipamento` informado: {matched_rows}.",

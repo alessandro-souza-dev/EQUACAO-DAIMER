@@ -3,3 +3,6 @@ pandas
 scikit-learn
 joblib
 openpyxl
+selenium
+matplotlib
+python-dotenv

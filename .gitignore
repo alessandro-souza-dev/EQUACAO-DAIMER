@@ -3,3 +3,7 @@
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+.env
+~$*.docx
+scraping/falhas_scrap.csv
+scraping/erro_menu.png

@@ -51,7 +51,7 @@ BASE_DIR = ROOT_DIR if SCRIPT_DIR.name == "estudo" else SCRIPT_DIR
 DATA_FILE = BASE_DIR / "scraping" / "Dados_Ensaios.xlsx"
 if not DATA_FILE.exists():
     DATA_FILE = BASE_DIR / "Dados_Ensaios.xlsx"
-OUTPUT_DIR = Path.home() / "daimer_modelos_ml"
+OUTPUT_DIR = BASE_DIR / "modelos_ml"
 BUNDLE_FILE = OUTPUT_DIR / "daimer_ml_bundle.joblib"
 METRICS_FILE = OUTPUT_DIR / "metricas_ml.json"
 WEIGHTS_REPORT_FILE = BASE_DIR / "docs" / "relatorio_pesos_modelo_ml.md"

@@ -65,7 +65,6 @@ THRESHOLDS = {
 MIN_POSITIVE = 1e-6
 MIN_H = 0.01
 WORKSPACE_DIR = Path(__file__).resolve().parent
-DEFAULT_BUNDLE_PATH = Path.home() / "daimer_modelos_ml" / "daimer_ml_bundle.joblib"
 ANCHOR_TOLERANCE = 1e-9
 
 
@@ -74,6 +73,12 @@ def resolve_workspace_file(*candidates: Path) -> Path:
         if candidate.exists():
             return candidate
     return candidates[0]
+
+
+DEFAULT_BUNDLE_PATH = resolve_workspace_file(
+    WORKSPACE_DIR / "modelos_ml" / "daimer_ml_bundle.joblib",
+    Path.home() / "daimer_modelos_ml" / "daimer_ml_bundle.joblib",
+)
 
 
 DEFAULT_DATA_FILE = resolve_workspace_file(

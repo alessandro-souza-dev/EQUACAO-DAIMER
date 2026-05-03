@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Esta varredura verificou se os PDFs em `../papers/` poderiam alterar ou reforcar a reconstrucao DAIMER antes do fechamento do projeto.
+Esta varredura verificou se os PDFs em `papers/` poderiam alterar ou reforcar a reconstrucao DAIMER antes do fechamento do projeto.
 
 Conclusao direta: os papers nao trazem a equacao DAIMER nem coeficientes/thresholds equivalentes aos usados na planilha. Eles agregam como suporte tecnico externo para a arquitetura adotada: diagnostico por multiplos sinais, normalizacao por referencia, termos nao lineares e necessidade de calibracao supervisionada quando houver casos reais.
 
