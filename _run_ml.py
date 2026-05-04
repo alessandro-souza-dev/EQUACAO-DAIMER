@@ -10,6 +10,10 @@ print(f'[bundle] Carregado OK. Modelos: {list(bundle["production_models"].keys()
 df = pd.read_excel(r'c:\Git_Repo\equacao daimer\scraping\Dados_Ensaios.xlsx')
 print(f'Total de registos: {len(df)}')
 
+colunas_dados_maquina = [col for col in df.columns if str(col).startswith('Máquina - ')]
+if colunas_dados_maquina:
+    print(f'Colunas de dados da máquina encontradas: {len(colunas_dados_maquina)}')
+
 # Normalizar virgulas para pontos nas colunas de features
 for col in FEATURE_COLUMNS:
     if col in df.columns:
@@ -34,7 +38,7 @@ for _, row in df_validos.iterrows():
             h=row['H'],
         )
         res = predict_from_bundle(bundle, input_data)
-        resultados.append({
+        resultado = {
             'NR_OS': row['NR_OS'],
             'D10_ML': res['d10'],
             'D20_ML': res['d20'],
@@ -44,7 +48,10 @@ for _, row in df_validos.iterrows():
             'D20_Real': row.get('Grau de Contaminação (D20)'),
             'Global_Real': row.get('Avaliação Global'),
             'GEI_Real': row.get('Grau de Envelhecimento GEI (Anos)'),
-        })
+        }
+        for coluna in colunas_dados_maquina:
+            resultado[coluna] = row.get(coluna)
+        resultados.append(resultado)
     except Exception as e:
         nr = row['NR_OS']
         print(f'  [erro] {nr}: {e}')
